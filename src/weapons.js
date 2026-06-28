@@ -13,7 +13,7 @@ const torpMat = new THREE.MeshStandardMaterial({
 
 const TORPEDO_SPEED = 40;
 const TORPEDO_RANGE = 100;
-const COOLDOWN      = 0.28;
+const COOLDOWN      = 0.55;
 
 const DESTRUCTIBLE = new Set(['wbc']);
 
