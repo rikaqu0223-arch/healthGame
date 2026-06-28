@@ -16,15 +16,14 @@ export function createRenderer(canvas) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.7;  // brighter — blood is vivid red, not a dark cave
+  renderer.toneMappingExposure = 1.3;
   return renderer;
 }
 
 export function createScene() {
   const scene = new THREE.Scene();
-  // Warm vivid red — the environment is lit by a dense mass of scarlet RBCs
-  scene.background = new THREE.Color(0x8a1e28);
-  scene.fog = new THREE.FogExp2(0x921e2a, 0.013);
+  scene.background = new THREE.Color(0x1c0008);
+  scene.fog = new THREE.FogExp2(0x2a0010, 0.018);
   return scene;
 }
 
@@ -63,18 +62,16 @@ export function buildTunnel(scene, length = TUNNEL_LENGTH) {
   const wallTexture = createTunnelWallTexture(length);
   const bumpTexture = createTunnelBumpTexture(length);
 
-  // Endothelium: pale blush pink, smooth and glistening (wet tissue)
-  // Research: tunica intima is "fine, transparent, colorless" — pale pink from the collagen behind it
   const material = new THREE.MeshStandardMaterial({
-    color:             0xD890A8,   // pale blush pink — endothelium
-    emissive:          0xA03858,   // warm pink-red glow from surrounding blood
-    emissiveIntensity: 0.5,
+    color:             0xb02535,
+    emissive:          0x5e1420,
+    emissiveIntensity: 1.1,
     map:               wallTexture,
     bumpMap:           bumpTexture,
-    bumpScale:         0.03,
+    bumpScale:         0.05,
     side:              THREE.BackSide,
-    roughness:         0.32,       // smooth, wet — like oral mucosa
-    metalness:         0.18,       // slight specularity for glistening surface
+    roughness:         0.9,
+    metalness:         0.0,
   });
 
   const tunnel = new THREE.Mesh(geometry, material);
@@ -91,37 +88,44 @@ function createTunnelWallTexture(length) {
   canvas.height = 1024;
   const ctx = canvas.getContext('2d');
 
-  // Pale pink base (endothelium + underlying collagen)
+  // Dark red base
   const base = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-  base.addColorStop(0,    '#c87890');
-  base.addColorStop(0.35, '#d88898');
-  base.addColorStop(0.65, '#cc7890');
-  base.addColorStop(1,    '#ba6880');
+  base.addColorStop(0,    '#4c0713');
+  base.addColorStop(0.45, '#8f1b2d');
+  base.addColorStop(1,    '#2a0310');
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Longitudinal folds — run along tube axis, not circumferentially (no rings)
+  // Subtle screen-only colour variation — no multiply, never darkens
   ctx.globalCompositeOperation = 'screen';
-  for (let i = 0; i < 14; i++) {
-    const x = randomBetween(0, canvas.width);
-    const w = randomBetween(12, 55);
+  for (let i = 0; i < 70; i++) {
+    const x = randomBetween(-40, canvas.width + 40);
+    const y = randomBetween(-40, canvas.height + 40);
+    const rx = randomBetween(20, 130);
+    const ry = randomBetween(12, 80);
+    const r  = Math.max(rx, ry);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(randomBetween(-Math.PI, Math.PI));
+    ctx.scale(rx / r, ry / r);
     const alpha = randomBetween(0.03, 0.09);
-    const grad = ctx.createLinearGradient(x - w, 0, x + w, 0);
-    grad.addColorStop(0, 'rgba(255, 200, 220, 0)');
-    grad.addColorStop(0.5, `rgba(255, 200, 220, ${alpha})`);
-    grad.addColorStop(1, 'rgba(255, 200, 220, 0)');
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    grad.addColorStop(0, `rgba(255, 80, 90, ${alpha})`);
+    grad.addColorStop(1, 'rgba(200, 40, 60, 0)');
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
-
-  // Wet glistening surface highlights — moist epithelium catches light
-  for (let i = 0; i < 28; i++) {
+  // Warm glow highlights
+  for (let i = 0; i < 16; i++) {
     const x = randomBetween(0, canvas.width);
     const y = randomBetween(0, canvas.height);
-    const r = randomBetween(18, 110);
+    const r = randomBetween(40, 180);
     const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
-    glow.addColorStop(0, `rgba(255, 240, 248, ${randomBetween(0.06, 0.16)})`);
-    glow.addColorStop(1, 'rgba(255, 160, 190, 0)');
+    glow.addColorStop(0, `rgba(255, 180, 160, ${randomBetween(0.03, 0.09)})`);
+    glow.addColorStop(1, 'rgba(255, 70, 60, 0)');
     ctx.fillStyle = glow;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
@@ -342,22 +346,19 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
 }
 
 export function buildLighting(scene) {
-  // Strong warm scarlet ambient — blood interior is vivid red, not a dark cave
-  scene.add(new THREE.AmbientLight(0xff3344, 1.1));
+  scene.add(new THREE.AmbientLight(0xff2233, 0.45));
 
-  // Warm directional fill to bring out the pink wall tones
-  const dir = new THREE.DirectionalLight(0xffaacc, 0.6);
-  dir.position.set(3, 4, 5);
+  const dir = new THREE.DirectionalLight(0xff8855, 0.7);
+  dir.position.set(5, 5, 5);
   scene.add(dir);
 
-  // Pulsing point lights along tunnel — brighter and warmer than before
   const pulseGroup = [];
-  for (let i = 0; i < 10; i++) {
-    const light = new THREE.PointLight(0xff2244, 3.5, 28);
+  for (let i = 0; i < 8; i++) {
+    const light = new THREE.PointLight(0xff3344, 2.5, 22);
     light.position.set(
       (Math.random() - 0.5) * 2,
       (Math.random() - 0.5) * 2,
-      -8 - i * (TUNNEL_LENGTH / 10),
+      -10 - i * (TUNNEL_LENGTH / 8),
     );
     scene.add(light);
     pulseGroup.push(light);
