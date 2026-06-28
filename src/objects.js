@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { spawnBroccoli } from './broccoli.js';
 
 // ── Shared geometries & materials (reused for perf) ──────────────────────────
 const crystalGeo  = new THREE.OctahedronGeometry(0.28, 0);
@@ -186,6 +187,9 @@ export function buildLevel(scene, tunnelLength = 200, run = 1) {
       objects.push(spawnPinball(scene, z));
     } else if (roll < 0.96) {
       objects.push(spawnEnergyOrb(scene, z));
+    } else if (roll < 0.98) {
+      const b = spawnBroccoli(scene, z);
+      if (b) objects.push(b);
     } else {
       objects.push(...spawnOrbitCluster(scene, z));
     }
@@ -230,6 +234,11 @@ export function updateObjects(objects, time) {
       obj.position.y += Math.sin(time * 3 + obj.position.z) * 0.001;
     }
 
+    if (t === 'broccoli' && !obj.userData.collected) {
+      obj.rotation.y = time * 1.2;
+      obj.position.y += Math.sin(time * 1.5 + obj.position.z) * 0.001;
+    }
+
     if (t === 'orbit_crystal' && !obj.userData.collected) {
       const { centerX, centerY, centerZ, orbitRadius, orbitSpeed, orbitPhase } = obj.userData;
       obj.position.x = centerX + Math.cos(time * orbitSpeed + orbitPhase) * orbitRadius;
@@ -244,7 +253,7 @@ export function updateObjects(objects, time) {
 
 const _v = new THREE.Vector3();
 
-export function checkCollisions(objects, playerPos, onCrystal, onBlock, onEnergy) {
+export function checkCollisions(objects, playerPos, onCrystal, onBlock, onEnergy, onBroccoli) {
   for (const obj of objects) {
     if (obj.userData.collected || obj.userData.hit) continue;
 
@@ -266,6 +275,26 @@ export function checkCollisions(objects, playerPos, onCrystal, onBlock, onEnergy
       obj.userData.collected = true;
       obj.visible = false;
       onEnergy(obj);
+    } else if (t === 'broccoli' && dist < 1.2) {
+      obj.userData.collected = true;
+      obj.visible = false;
+      onBroccoli(obj);
     }
   }
+}
+
+// Clear damaging obstacles ahead of playerZ (obstacles have more-negative Z)
+export function clearObstaclesAhead(objects, playerZ, range = 40) {
+  const HARMFUL = new Set(['block', 'ring', 'drifter', 'pinball']);
+  let cleared = 0;
+  for (const obj of objects) {
+    if (obj.userData.collected || obj.userData.hit) continue;
+    if (!HARMFUL.has(obj.userData.type)) continue;
+    if (obj.position.z < playerZ && obj.position.z > playerZ - range) {
+      obj.userData.hit = true;
+      obj.visible = false;
+      cleared++;
+    }
+  }
+  return cleared;
 }

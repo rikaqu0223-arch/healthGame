@@ -2,7 +2,8 @@ import './style.css';
 import * as THREE from 'three';
 import { createRenderer, createScene, createCamera, buildTunnel, buildLighting, onResize } from './scene.js';
 import { createSubmarine, createInputState, updatePlayer, updateCamera } from './player.js';
-import { buildLevel, updateObjects, checkCollisions } from './objects.js';
+import { buildLevel, updateObjects, checkCollisions, clearObstaclesAhead } from './objects.js';
+import { loadBroccoliModel } from './broccoli.js';
 import { createSonar, fireSonar, updateSonar } from './sonar.js';
 import { updateHUD, showEnd, flash, showBossHUD, updateBossBar, hideBossHUD, updateRunHUD } from './hud.js';
 import { createWeaponSystem, resetWeapons, fireTorpedo, updateWeapons } from './weapons.js';
@@ -35,6 +36,9 @@ const runConfig = {
   shieldHits:   0,
   energyRegen:  0,
 };
+
+// Preload GLB in background — done well before player clicks Start
+loadBroccoliModel();
 
 let objects = [];
 let state   = makeState();
@@ -212,6 +216,11 @@ renderer.setAnimationLoop(() => {
       (_crystal) => { state.score += 10; },
       (_block)   => { takeDamage(15); },
       (_orb)     => { state.energy = Math.min(runConfig.maxEnergy, state.energy + 25); flash('energy'); },
+      (_broc)    => {
+        const cleared = clearObstaclesAhead(objects, state.z, 40);
+        state.score += 50 + cleared * 5;
+        flash('broccoli');
+      },
     );
 
     // Activate boss when player nears the end
