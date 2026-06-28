@@ -48,10 +48,16 @@ export function buildTunnel(scene, length = TUNNEL_LENGTH) {
   pos.needsUpdate = true;
   geometry.computeVertexNormals();
 
+  const wallTexture = createTunnelWallTexture(length);
+  const bumpTexture = createTunnelBumpTexture(length);
+
   const material = new THREE.MeshStandardMaterial({
     color:             0x6e1422,   // brighter crimson
     emissive:          0x2e0810,
     emissiveIntensity: 0.7,
+    map:               wallTexture,
+    bumpMap:           bumpTexture,
+    bumpScale:         0.08,
     side:              THREE.BackSide,
     roughness:         0.95,
     metalness:         0.0,
@@ -61,6 +67,187 @@ export function buildTunnel(scene, length = TUNNEL_LENGTH) {
   tunnel.position.z = -length / 2;
   scene.add(tunnel);
   return tunnel;
+}
+
+function createTunnelWallTexture(length) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 1024;
+  const ctx = canvas.getContext('2d');
+
+  const base = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  base.addColorStop(0, '#4c0713');
+  base.addColorStop(0.45, '#8f1b2d');
+  base.addColorStop(1, '#2a0310');
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawOrganicBlotches(ctx, canvas, 125);
+  drawCapillaryLines(ctx, canvas, 34);
+  addFineGrain(ctx, canvas, 18);
+
+  ctx.globalCompositeOperation = 'screen';
+  for (let i = 0; i < 20; i++) {
+    const y = randomBetween(0, canvas.height);
+    const width = randomBetween(80, 260);
+    const x = randomBetween(-80, canvas.width);
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, width);
+    glow.addColorStop(0, `rgba(255, ${randomBetween(86, 132)}, 74, ${randomBetween(0.04, 0.12)})`);
+    glow.addColorStop(1, 'rgba(255, 70, 60, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - width, y - width, width * 2, width * 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, Math.max(2, length / 42));
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function createTunnelBumpTexture(length) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#777';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < 180; i++) {
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height;
+    const radius = randomBetween(6, 42);
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    grad.addColorStop(0, `rgba(225, 225, 225, ${randomBetween(0.10, 0.34)})`);
+    grad.addColorStop(0.55, `rgba(95, 95, 95, ${randomBetween(0.08, 0.22)})`);
+    grad.addColorStop(1, 'rgba(80, 80, 80, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  for (let i = 0; i < 42; i++) {
+    const x = randomBetween(-30, canvas.width + 30);
+    ctx.strokeStyle = `rgba(215, 215, 215, ${randomBetween(0.04, 0.14)})`;
+    ctx.lineWidth = randomBetween(0.8, 3.4);
+    ctx.beginPath();
+    ctx.moveTo(x, randomBetween(-80, 80));
+    for (let y = 0; y <= canvas.height + 80; y += randomBetween(22, 42)) {
+      ctx.lineTo(
+        x + Math.sin(y * randomBetween(0.012, 0.028) + i) * randomBetween(8, 28),
+        y,
+      );
+    }
+    ctx.stroke();
+  }
+
+  addFineGrain(ctx, canvas, 24, true);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, Math.max(2, length / 42));
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function drawOrganicBlotches(ctx, canvas, count) {
+  ctx.globalCompositeOperation = 'multiply';
+  for (let i = 0; i < count; i++) {
+    const x = randomBetween(-40, canvas.width + 40);
+    const y = randomBetween(-40, canvas.height + 40);
+    const rx = randomBetween(18, 110);
+    const ry = randomBetween(10, 72);
+    const radius = Math.max(rx, ry);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(randomBetween(-Math.PI, Math.PI));
+    ctx.scale(rx / radius, ry / radius);
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+    const darkAlpha = randomBetween(0.06, 0.24);
+    grad.addColorStop(0, `rgba(70, 0, 18, ${darkAlpha})`);
+    grad.addColorStop(randomBetween(0.35, 0.65), `rgba(128, 10, 30, ${darkAlpha * 0.55})`);
+    grad.addColorStop(1, 'rgba(40, 0, 18, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.globalCompositeOperation = 'screen';
+  for (let i = 0; i < count * 0.45; i++) {
+    const x = randomBetween(-40, canvas.width + 40);
+    const y = randomBetween(-40, canvas.height + 40);
+    const radius = randomBetween(18, 90);
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    grad.addColorStop(0, `rgba(255, 110, 86, ${randomBetween(0.04, 0.12)})`);
+    grad.addColorStop(1, 'rgba(255, 96, 80, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function drawCapillaryLines(ctx, canvas, count) {
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.globalCompositeOperation = 'screen';
+  for (let i = 0; i < count; i++) {
+    const startX = randomBetween(-80, canvas.width + 80);
+    const startY = randomBetween(-120, canvas.height);
+    const segments = Math.floor(randomBetween(3, 7));
+    const hueShift = Math.floor(randomBetween(-12, 18));
+    ctx.strokeStyle = `rgba(${210 + hueShift}, ${42 + hueShift * 0.25}, ${38}, ${randomBetween(0.08, 0.2)})`;
+    ctx.lineWidth = randomBetween(1.2, 5.8);
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    let x = startX;
+    let y = startY;
+    for (let s = 0; s < segments; s++) {
+      const nextY = y + randomBetween(90, 190);
+      const nextX = x + randomBetween(-90, 90);
+      ctx.bezierCurveTo(
+        x + randomBetween(-70, 70),
+        y + randomBetween(20, 95),
+        nextX + randomBetween(-70, 70),
+        nextY - randomBetween(20, 95),
+        nextX,
+        nextY,
+      );
+      x = nextX;
+      y = nextY;
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function addFineGrain(ctx, canvas, amount, grayscale = false) {
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = image.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const grain = Math.floor(randomBetween(-amount, amount));
+    if (grayscale) {
+      data[i] += grain;
+      data[i + 1] += grain;
+      data[i + 2] += grain;
+    } else {
+      data[i] += grain;
+      data[i + 1] += Math.floor(grain * 0.45);
+      data[i + 2] += Math.floor(grain * 0.35);
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+}
+
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
 }
 
 // ── Blood vessel environment — all batched into InstancedMeshes (5 draw calls) ─
