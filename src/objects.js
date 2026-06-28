@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { spawnBroccoli } from './broccoli.js';
+import { spawnFries } from './fries.js';
+import { spawnWBC } from './wbc.js';
 
 // ── Shared geometries & materials (reused for perf) ──────────────────────────
 const crystalGeo  = new THREE.OctahedronGeometry(0.28, 0);
@@ -173,25 +175,14 @@ export function buildLevel(scene, tunnelLength = 200, run = 1) {
 
   for (let z = -10; z > -tunnelLength + 10; z -= step) {
     const roll = Math.random();
-    if (roll < 0.30) {
-      objects.push(spawnCrystal(scene, z));
-    } else if (roll < 0.50) {
-      objects.push(spawnBlock(scene, z));
-    } else if (roll < 0.60) {
-      objects.push(spawnTurbulenceRing(scene, z));
-    } else if (roll < 0.70) {
-      for (let i = 0; i < 3; i++) objects.push(spawnCrystal(scene, z - i * 1.2));
-    } else if (roll < 0.84) {
-      objects.push(spawnDrifter(scene, z, speedMult));
-    } else if (roll < 0.92) {
-      objects.push(spawnPinball(scene, z));
-    } else if (roll < 0.96) {
-      objects.push(spawnEnergyOrb(scene, z));
-    } else if (roll < 0.98) {
-      const b = spawnBroccoli(scene, z);
+    if (roll < 0.80) {
+      objects.push(spawnWBC(scene, z));               // 80% — WBC (shoot or dodge)
+    } else if (roll < 0.89) {
+      const b = spawnBroccoli(scene, z);              //  9% — broccoli (clears ahead)
       if (b) objects.push(b);
     } else {
-      objects.push(...spawnOrbitCluster(scene, z));
+      const f = spawnFries(scene, z);                // 11% — fries (clears radius)
+      if (f) objects.push(f);
     }
   }
   return objects;
@@ -234,9 +225,22 @@ export function updateObjects(objects, time) {
       obj.position.y += Math.sin(time * 3 + obj.position.z) * 0.001;
     }
 
+    if (t === 'wbc' && !obj.userData.hit) {
+      obj.rotation.y = time * obj.userData.rotSpeed;
+      obj.rotation.x = Math.sin(time * 0.7 + obj.position.z) * 0.3;
+      if (obj.userData.pulseLight)
+        obj.userData.pulseLight.intensity = 1.5 + Math.sin(time * 4) * 0.8;
+    }
+
     if (t === 'broccoli' && !obj.userData.collected) {
       obj.rotation.y = time * 1.2;
       obj.position.y += Math.sin(time * 1.5 + obj.position.z) * 0.001;
+    }
+
+    if (t === 'fries' && !obj.userData.collected) {
+      obj.rotation.y = time * 1.6;
+      obj.rotation.z = Math.sin(time * 2 + obj.position.z) * 0.2;
+      obj.position.y += Math.sin(time * 2.5 + obj.position.z) * 0.001;
     }
 
     if (t === 'orbit_crystal' && !obj.userData.collected) {
@@ -253,7 +257,7 @@ export function updateObjects(objects, time) {
 
 const _v = new THREE.Vector3();
 
-export function checkCollisions(objects, playerPos, onCrystal, onBlock, onEnergy, onBroccoli) {
+export function checkCollisions(objects, playerPos, onCrystal, onBlock, onEnergy, onBroccoli, onFries) {
   for (const obj of objects) {
     if (obj.userData.collected || obj.userData.hit) continue;
 
@@ -265,10 +269,7 @@ export function checkCollisions(objects, playerPos, onCrystal, onBlock, onEnergy
       obj.userData.collected = true;
       obj.visible = false;
       onCrystal(obj);
-    } else if ((t === 'block' || t === 'ring' || t === 'pinball') && dist < 1.1) {
-      obj.userData.hit = true;
-      onBlock(obj);
-    } else if (t === 'drifter' && dist < 1.0) {
+    } else if (t === 'wbc' && dist < 1.1) {
       obj.userData.hit = true;
       onBlock(obj);
     } else if (t === 'energy_orb' && dist < 0.9) {
@@ -279,18 +280,37 @@ export function checkCollisions(objects, playerPos, onCrystal, onBlock, onEnergy
       obj.userData.collected = true;
       obj.visible = false;
       onBroccoli(obj);
+    } else if (t === 'fries' && dist < 1.0) {
+      obj.userData.collected = true;
+      obj.visible = false;
+      onFries(obj);
     }
   }
 }
 
-// Clear damaging obstacles ahead of playerZ (obstacles have more-negative Z)
+// Broccoli: clear WBC in a forward beam (40 units ahead)
 export function clearObstaclesAhead(objects, playerZ, range = 40) {
-  const HARMFUL = new Set(['block', 'ring', 'drifter', 'pinball']);
   let cleared = 0;
   for (const obj of objects) {
     if (obj.userData.collected || obj.userData.hit) continue;
-    if (!HARMFUL.has(obj.userData.type)) continue;
+    if (obj.userData.type !== 'wbc') continue;
     if (obj.position.z < playerZ && obj.position.z > playerZ - range) {
+      obj.userData.hit = true;
+      obj.visible = false;
+      cleared++;
+    }
+  }
+  return cleared;
+}
+
+// Fries: clear WBC in a sphere around the player (any direction, closer range)
+export function clearObstaclesAround(objects, playerPos, radius = 25) {
+  let cleared = 0;
+  for (const obj of objects) {
+    if (obj.userData.collected || obj.userData.hit) continue;
+    if (obj.userData.type !== 'wbc') continue;
+    _v.subVectors(obj.position, playerPos);
+    if (_v.length() < radius) {
       obj.userData.hit = true;
       obj.visible = false;
       cleared++;

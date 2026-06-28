@@ -446,6 +446,16 @@ canvas#c {
   100% { background: #22ff66; opacity: 0; }
 }
 
+#flash.flash-fries {
+  animation: flash-fries 0.5s ease-out forwards;
+}
+
+@keyframes flash-fries {
+  0%   { background: #ff9900; opacity: 0.6; }
+  50%  { background: #ffcc00; opacity: 0.35; }
+  100% { background: #ff9900; opacity: 0; }
+}
+
 /* ── Fire button ── */
 #fire-btn {
   position: fixed;

@@ -15,7 +15,7 @@ const TORPEDO_SPEED = 40;
 const TORPEDO_RANGE = 100;
 const COOLDOWN      = 0.28;
 
-const DESTRUCTIBLE = new Set(['block', 'ring', 'drifter', 'pinball']);
+const DESTRUCTIBLE = new Set(['wbc']);
 
 export function createWeaponSystem() {
   return { projectiles: [], lastFired: -999 };

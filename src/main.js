@@ -2,8 +2,10 @@ import './style.css';
 import * as THREE from 'three';
 import { createRenderer, createScene, createCamera, buildTunnel, buildLighting, buildBloodEnvironment, onResize } from './scene.js';
 import { createSubmarine, createInputState, updatePlayer, updateCamera } from './player.js';
-import { buildLevel, updateObjects, checkCollisions, clearObstaclesAhead } from './objects.js';
+import { buildLevel, updateObjects, checkCollisions, clearObstaclesAhead, clearObstaclesAround } from './objects.js';
 import { loadBroccoliModel } from './broccoli.js';
+import { loadFriesModel } from './fries.js';
+import { loadWBCModel } from './wbc.js';
 import { createSonar, fireSonar, updateSonar } from './sonar.js';
 import { updateHUD, showEnd, flash, showBossHUD, updateBossBar, hideBossHUD, updateRunHUD } from './hud.js';
 import { createWeaponSystem, resetWeapons, fireTorpedo, updateWeapons } from './weapons.js';
@@ -39,8 +41,10 @@ const runConfig = {
   energyRegen:  0,
 };
 
-// Preload GLB in background — done well before player clicks Start
+// Preload GLBs in background — done well before player clicks Start
 loadBroccoliModel();
+loadFriesModel();
+loadWBCModel();
 
 let objects = [];
 let state   = makeState();
@@ -242,6 +246,11 @@ renderer.setAnimationLoop(() => {
         const cleared = clearObstaclesAhead(objects, state.z, 40);
         state.score += 50 + cleared * 5;
         flash('broccoli');
+      },
+      (_fries)   => {
+        const cleared = clearObstaclesAround(objects, playerPos, 25);
+        state.score += 30 + cleared * 5;
+        flash('fries');
       },
     );
 
