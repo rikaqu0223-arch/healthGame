@@ -64,13 +64,13 @@ export function buildTunnel(scene, length = TUNNEL_LENGTH) {
 
   const material = new THREE.MeshStandardMaterial({
     color:             0xb02535,
-    emissive:          0x5e1420,
-    emissiveIntensity: 1.1,
+    emissive:          0x3a0c14,
+    emissiveIntensity: 0.35,   // low so point lights cast visible shadows
     map:               wallTexture,
     bumpMap:           bumpTexture,
-    bumpScale:         0.05,
+    bumpScale:         0.14,   // strong enough to catch shadow in bumps
     side:              THREE.BackSide,
-    roughness:         0.9,
+    roughness:         0.88,
     metalness:         0.0,
   });
 
@@ -131,8 +131,23 @@ function createTunnelWallTexture(length) {
   }
   ctx.globalCompositeOperation = 'source-over';
 
+  // Longitudinal fold shadows — very subtle darkening along fold valleys
+  // multiply at max 0.06 alpha: barely perceptible, suggests depth without black patches
+  ctx.globalCompositeOperation = 'multiply';
+  for (let i = 0; i < 14; i++) {
+    const x = randomBetween(0, canvas.width);
+    const w = randomBetween(12, 40);
+    const grad = ctx.createLinearGradient(x - w, 0, x + w, 0);
+    grad.addColorStop(0, 'rgba(18, 0, 4, 0)');
+    grad.addColorStop(0.5, `rgba(18, 0, 4, ${randomBetween(0.03, 0.06)})`);
+    grad.addColorStop(1, 'rgba(18, 0, 4, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
   // Faint capillary/venule networks visible through vessel wall
-  drawCapillaryLines(ctx, canvas, 28);
+  drawCapillaryLines(ctx, canvas, 34);
   addFineGrain(ctx, canvas, 7);
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -269,14 +284,14 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
     roughness:         0.65,
     metalness:         0.0,
   });
-  // Dense packing: 280 cells filling the vessel cross-section
-  const RBC_COUNT = 280;
+  // Sparse enough to not block gameplay — clustered toward walls, clear center
+  const RBC_COUNT = 90;
   const rbcMesh = new THREE.InstancedMesh(rbcGeo, rbcMat, RBC_COUNT);
   for (let i = 0; i < RBC_COUNT; i++) {
     const t = i / RBC_COUNT;
     const z = -5 - t * (length - 10) + (Math.random() - 0.5) * (length / RBC_COUNT) * 5;
-    // Fill entire cross-section — cells appear near walls too
-    const r = Math.random() * (TUNNEL_RADIUS - 0.4);
+    // Keep cells toward outer half of tunnel so center stays clear
+    const r = 1.4 + Math.random() * (TUNNEL_RADIUS - 1.8);
     const ang = Math.random() * Math.PI * 2;
     _p.set(Math.cos(ang) * r, Math.sin(ang) * r, z);
     _e.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
@@ -354,7 +369,7 @@ export function buildLighting(scene) {
 
   const pulseGroup = [];
   for (let i = 0; i < 8; i++) {
-    const light = new THREE.PointLight(0xff3344, 2.5, 22);
+    const light = new THREE.PointLight(0xff3344, 3.8, 30);
     light.position.set(
       (Math.random() - 0.5) * 2,
       (Math.random() - 0.5) * 2,
