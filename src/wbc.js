@@ -29,13 +29,17 @@ export function loadWBCModel() {
       const center = box.getCenter(new THREE.Vector3());
       root.position.sub(center.multiplyScalar(root.scale.x));
 
-      // Yellow tint
+      // Force yellow — strip any texture that would fight the colour
       root.traverse(child => {
         if (!child.isMesh) return;
-        child.material = child.material.clone();
-        child.material.color            = new THREE.Color(0xffdd00);
-        child.material.emissive         = new THREE.Color(0xff8800);
-        child.material.emissiveIntensity = 0.6;
+        child.material = new THREE.MeshStandardMaterial({
+          color:             new THREE.Color(0xffdd00),
+          emissive:          new THREE.Color(0xdd8800),
+          emissiveIntensity: 1.0,
+          roughness:         0.45,
+          metalness:         0.1,
+        });
+        child.frustumCulled = false;
       });
 
       _template = root;

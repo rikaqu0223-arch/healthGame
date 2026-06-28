@@ -19,9 +19,6 @@ export function loadFriesModel() {
 
       root.traverse(child => {
         if (!child.isMesh) return;
-        child.material = child.material.clone();
-        child.material.emissive          = new THREE.Color(0xff9900);
-        child.material.emissiveIntensity = 0.8;
         child.frustumCulled = false;
       });
 
@@ -44,6 +41,9 @@ export function spawnFries(scene, z) {
     z,
   );
   group.userData = { type: 'fries', collected: false };
+
+  const light = new THREE.PointLight(0xfff5e0, 3.5, 6);
+  group.add(light);
 
   scene.add(group);
   return group;

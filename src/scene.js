@@ -296,40 +296,13 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
     _p.set(Math.cos(ang) * r, Math.sin(ang) * r, z);
     _e.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
     _q.setFromEuler(_e);
-    const sz = 0.22 + Math.random() * 0.18;  // diameter 0.22–0.40
+    const sz = 0.09 + Math.random() * 0.07;  // diameter 0.09–0.16
     _s.set(sz, sz * 0.28, sz);               // biconcave: thickness ~28% of diameter
     _m.compose(_p, _q, _s);
     rbcMesh.setMatrixAt(i, _m);
   }
   rbcMesh.instanceMatrix.needsUpdate = true;
   group.add(rbcMesh);
-
-  // ── Leukocytes — ivory cream, large, bumpy, rare (~1 per 700 RBCs) ────────
-  // Research: 2× RBC diameter, pale ivory #F0E8D8, lobulated surface
-  const wbcGeo = new THREE.IcosahedronGeometry(0.5, 1);
-  const wbcMat = new THREE.MeshStandardMaterial({
-    color:             0xF0E8D8,   // ivory cream
-    emissive:          0x503020,
-    emissiveIntensity: 0.25,
-    roughness:         0.88,       // bumpy/matte surface
-    metalness:         0.0,
-  });
-  const WBC_COUNT = 5;
-  const wbcMesh = new THREE.InstancedMesh(wbcGeo, wbcMat, WBC_COUNT);
-  for (let i = 0; i < WBC_COUNT; i++) {
-    const z = -25 - (i / WBC_COUNT) * (length - 50);
-    const r = 0.3 + Math.random() * 2.5;
-    const ang = Math.random() * Math.PI * 2;
-    _p.set(Math.cos(ang) * r, Math.sin(ang) * r, z);
-    _e.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-    _q.setFromEuler(_e);
-    const sc = 0.7 + Math.random() * 0.5;
-    _s.set(sc, sc * (0.8 + Math.random() * 0.4), sc);
-    _m.compose(_p, _q, _s);
-    wbcMesh.setMatrixAt(i, _m);
-  }
-  wbcMesh.instanceMatrix.needsUpdate = true;
-  group.add(wbcMesh);
 
   // ── Platelets — tiny pale disc fragments, barely visible ──────────────────
   // Research: 2–4µm (< half RBC size), pale #F5DDD0, disc-shaped

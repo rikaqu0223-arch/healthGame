@@ -6,7 +6,7 @@ const _loader  = new GLTFLoader();
 
 export function loadHamburgerModel() {
   return new Promise((resolve) => {
-    _loader.load('/Hamburger.glb', (gltf) => {
+    _loader.load('/burger.glb', (gltf) => {
       const root = gltf.scene;
 
       const box    = new THREE.Box3().setFromObject(root);
@@ -19,16 +19,13 @@ export function loadHamburgerModel() {
 
       root.traverse(child => {
         if (!child.isMesh) return;
-        child.material = child.material.clone();
-        child.material.emissive          = new THREE.Color(0xff8800);
-        child.material.emissiveIntensity = 0.8;
         child.frustumCulled = false;
       });
 
       _template = root;
       resolve();
     }, undefined, (err) => {
-      console.warn('Hamburger.glb failed to load:', err);
+      console.warn('burger.glb failed to load:', err);
       resolve();
     });
   });
@@ -44,6 +41,9 @@ export function spawnHamburger(scene, z) {
     z,
   );
   group.userData = { type: 'hamburger', collected: false };
+
+  const light = new THREE.PointLight(0xfff5e0, 3.5, 6);
+  group.add(light);
 
   scene.add(group);
   return group;
