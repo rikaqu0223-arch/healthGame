@@ -234,14 +234,14 @@ body:not(.game-active) #boss-hud {
 }
 
 #cs-portrait {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+  width: 88px;
+  height: 120px;
+  border-radius: 6px;
   border: 2px solid #ff4466;
   object-fit: cover;
+  object-position: top center;
   flex-shrink: 0;
   background: #0a0010;
-  image-rendering: auto;
 }
 
 #cs-dialogue-body {

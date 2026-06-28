@@ -1,7 +1,9 @@
 // ── Speaker portraits (anime-style via DiceBear Adventurer) ──────────────────
 const SPEAKER_PORTRAITS = {
-  'DR. REYES': 'https://api.dicebear.com/10.x/adventurer/png?seed=DrReyes&size=160&backgroundColor=1a0520',
-  'PILOT':     'https://api.dicebear.com/10.x/adventurer/png?seed=NanoSubPilot7&size=160&backgroundColor=040d1a',
+  // Anime-style doctor (CC BY-SA 4.0, Wikimedia Commons)
+  'DR. REYES': 'https://upload.wikimedia.org/wikipedia/commons/4/40/Vaksin_Bu_Ratna.png',
+  // Anime VN male character (free commercial use, sutemo / itch.io CDN)
+  'PILOT':     'https://img.itch.zone/aW1hZ2UvNjU2OTI0LzM1MzEwNzkucG5n/347x500/wGKAHm.png',
 };
 
 // ── Story acts ────────────────────────────────────────────────────────────────
