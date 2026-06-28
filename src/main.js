@@ -240,6 +240,16 @@ renderer.setAnimationLoop(() => {
 
     updateSonar(sonar, playerPos, delta);
     updateObjects(objects, time);
+
+    // Remove objects more than 25 units behind the player — keeps active set small
+    // regardless of tunnel length, preventing lag at runs 5+
+    for (let i = objects.length - 1; i >= 0; i--) {
+      if (objects[i].position.z > state.z + 25) {
+        scene.remove(objects[i]);
+        objects.splice(i, 1);
+      }
+    }
+
     updateWeapons(weapons, objects, scene, delta, () => flash('hit'));
     checkCollisions(
       objects,

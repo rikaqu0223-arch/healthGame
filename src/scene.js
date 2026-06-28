@@ -293,7 +293,7 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
     roughness:         0.97,
   });
   const ribZStep = 13;
-  const ribCount = Math.floor((length - 28) / ribZStep);
+  const ribCount = Math.min(Math.floor((length - 28) / ribZStep), 20);
   const ribMesh = new THREE.InstancedMesh(ribGeo, ribMat, ribCount);
   for (let i = 0; i < ribCount; i++) {
     const z = -14 - i * ribZStep;
