@@ -73,6 +73,109 @@ canvas#c {
   box-shadow: 0 0 20px #00ccff88;
 }
 
+/* ── Boss HUD ── */
+#boss-hud {
+  position: fixed;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  text-align: center;
+  pointer-events: none;
+}
+
+#boss-hud.hidden { display: none; }
+
+#boss-label {
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: #ff44aa;
+  text-shadow: 0 0 10px #ff44aa;
+  margin-bottom: 5px;
+  animation: boss-label-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes boss-label-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+#boss-bar-wrap {
+  width: 260px;
+  height: 12px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 68, 170, 0.5);
+  overflow: hidden;
+}
+
+#boss-bar {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #ff0066, #aa00ff);
+  border-radius: 6px;
+  transition: width 0.15s;
+}
+
+/* ── Collision flash ── */
+#flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+  opacity: 0;
+}
+
+#flash.flash-damage {
+  animation: flash-damage 0.35s ease-out forwards;
+}
+
+#flash.flash-energy {
+  animation: flash-energy 0.35s ease-out forwards;
+}
+
+#flash.flash-hit {
+  animation: flash-hit 0.25s ease-out forwards;
+}
+
+@keyframes flash-damage {
+  0%   { background: #ff1133; opacity: 0.55; }
+  100% { background: #ff1133; opacity: 0; }
+}
+
+@keyframes flash-energy {
+  0%   { background: #00ff88; opacity: 0.45; }
+  100% { background: #00ff88; opacity: 0; }
+}
+
+@keyframes flash-hit {
+  0%   { background: #ffffff; opacity: 0.5; }
+  100% { background: #ffffff; opacity: 0; }
+}
+
+/* ── Fire button ── */
+#fire-btn {
+  position: fixed;
+  bottom: 32px;
+  right: 152px;
+  z-index: 10;
+  padding: 14px 28px;
+  background: rgba(255, 80, 0, 0.15);
+  color: #ff6600;
+  border: 2px solid #ff6600;
+  border-radius: 50px;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+#fire-btn:hover, #fire-btn:active {
+  background: rgba(255, 100, 0, 0.35);
+  box-shadow: 0 0 20px #ff660088;
+}
+
 /* ── Overlay screens ── */
 #overlay, #end-overlay {
   position: fixed;

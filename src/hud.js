@@ -1,6 +1,29 @@
-const scoreEl  = document.getElementById('score');
-const timerEl  = document.getElementById('timer');
-const energyEl = document.getElementById('energy-bar');
+const scoreEl   = document.getElementById('score');
+const timerEl   = document.getElementById('timer');
+const energyEl  = document.getElementById('energy-bar');
+const flashEl   = document.getElementById('flash');
+const bossHudEl = document.getElementById('boss-hud');
+const bossBarEl = document.getElementById('boss-bar');
+
+export function showBossHUD(hp, maxHp) {
+  bossHudEl.classList.remove('hidden');
+  bossBarEl.style.width = `${(hp / maxHp) * 100}%`;
+}
+
+export function updateBossBar(hp, maxHp) {
+  bossBarEl.style.width = `${Math.max(0, hp / maxHp) * 100}%`;
+}
+
+export function hideBossHUD() {
+  bossHudEl.classList.add('hidden');
+}
+
+export function flash(type) {
+  flashEl.className = '';
+  // Force reflow so removing+re-adding the class restarts the animation
+  void flashEl.offsetWidth;
+  flashEl.className = `flash-${type}`;
+}
 
 export function updateHUD(state) {
   scoreEl.textContent  = state.score;
@@ -20,7 +43,11 @@ export function showEnd(state) {
   const title   = document.getElementById('end-title');
   const stats   = document.getElementById('end-stats');
 
-  if (state.energy <= 0) {
+  if (state.bossDefeated) {
+    title.textContent = 'PATHOGEN DESTROYED';
+    title.style.color = '#ff44ff';
+    title.style.textShadow = '0 0 24px #ff44ff, 0 0 48px #aa00ff';
+  } else if (state.energy <= 0) {
     title.textContent = 'FLOW BLOCKED';
     title.style.color = '#ff4466';
     title.style.textShadow = '0 0 24px #ff4466';
