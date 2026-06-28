@@ -40,9 +40,12 @@ export function flash(type) {
 }
 
 export function updateHUD(state) {
+  const maxEnergy = state.maxEnergy || 100;
+  const energyPct = Math.max(0, Math.min(100, (state.energy / maxEnergy) * 100));
+
   scoreEl.textContent  = state.score;
   timerEl.textContent  = Math.ceil(state.timeLeft);
-  energyEl.style.width = `${state.energy}%`;
+  energyEl.style.width = `${energyPct}%`;
 
   // Pulse energy bar red when low
   if (state.energy < 30) {

@@ -31,16 +31,28 @@ const sonar   = createSonar(scene);
 const weapons = createWeaponSystem();
 const boss    = createBoss(scene);
 
+const MEAL_API_KEY = import.meta.env.VITE_MEAL_API_KEY || '';
+const MEAL_API_URL = 'https://api.tu-zi.com/v1/chat/completions';
+
 // ── Persistent run config (survives restarts) ─────────────────────────────────
 const runConfig = {
   run:          1,
   tunnelLength: 200,
+  startingEnergy: 100,
   maxEnergy:    100,
   torpedoSpeed: 40,
   torpedoDamage: 1,
   spreadShot:   false,
   shieldHits:   0,
   energyRegen:  0,
+};
+
+let mealScan = {
+  mealName:       'Unscanned meal',
+  healthScore:    100,
+  startingEnergy: 100,
+  grade:          'A',
+  reason:         'Default launch health.',
 };
 
 // Preload GLBs in background — done well before player clicks Start
@@ -51,6 +63,8 @@ loadWBCModel();
 let objects = [];
 let state   = makeState();
 const clock = new THREE.Clock(false);
+document.body.classList.add('pregame');
+document.body.classList.remove('game-active');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function bossDifficulty() {
@@ -68,12 +82,144 @@ function makeState() {
     px:           0,
     py:           0,
     score:        0,
-    energy:       runConfig.maxEnergy,
+    energy:       Math.min(runConfig.startingEnergy, runConfig.maxEnergy),
+    maxEnergy:    runConfig.maxEnergy,
     timeLeft:     90 + (runConfig.run - 1) * 15,
     shieldHits:   runConfig.shieldHits,
     bossDefeated:    false,
     wallDmgCooldown: 0,
   };
+}
+
+function resetRunProgress(startingEnergy = mealScan.startingEnergy) {
+  runConfig.run            = 1;
+  runConfig.tunnelLength   = 200;
+  runConfig.startingEnergy = startingEnergy;
+  runConfig.maxEnergy      = 100;
+  runConfig.torpedoSpeed   = 40;
+  runConfig.torpedoDamage  = 1;
+  runConfig.spreadShot     = false;
+  runConfig.shieldHits     = 0;
+  runConfig.energyRegen    = 0;
+}
+
+function clampScore(value) {
+  const score = Number(value);
+  if (!Number.isFinite(score)) return 60;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function gradeFromScore(score) {
+  if (score >= 85) return 'A';
+  if (score >= 70) return 'B';
+  if (score >= 55) return 'C';
+  if (score >= 40) return 'D';
+  return 'F';
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function extractJson(content) {
+  const cleaned = String(content || '')
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '');
+  return JSON.parse(cleaned);
+}
+
+async function analyzeMealImage(imageSource) {
+  if (!MEAL_API_KEY) {
+    throw new Error('Meal scanner API key is missing. Add VITE_MEAL_API_KEY to .env.local.');
+  }
+
+  const payload = {
+    model: 'gemini-3-flash-preview',
+    messages: [
+      {
+        role: 'system',
+        content: 'You grade meal photos for a game. Return only valid JSON. This is not medical advice.',
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Look at the image and return ONLY minified JSON, no markdown: {"mealName":"...","healthScore":0-100,"startingEnergy":0-100,"grade":"A/B/C/D/F","reason":"short"}. startingEnergy must equal healthScore. Grade mapping: A=85-100, B=70-84, C=55-69, D=40-54, F=0-39.',
+          },
+          {
+            type: 'image_url',
+            image_url: { url: imageSource },
+          },
+        ],
+      },
+    ],
+    response_format: { type: 'json_object' },
+    stream: false,
+    temperature: 0.1,
+    max_tokens: 2048,
+  };
+
+  const response = await fetch(MEAL_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${MEAL_API_KEY}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const raw = await response.text();
+  if (!raw.trim()) throw new Error(`Meal scanner returned HTTP ${response.status} with an empty body.`);
+
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (_error) {
+    throw new Error(`Meal scanner returned non-JSON response: ${raw.slice(0, 180)}`);
+  }
+
+  if (!response.ok) {
+    const message = data.error?.message || data.message || `Meal scanner failed with HTTP ${response.status}.`;
+    throw new Error(message);
+  }
+
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Meal scanner returned no meal description.');
+
+  const result = extractJson(content);
+  const score = clampScore(result.startingEnergy ?? result.healthScore);
+  return {
+    mealName:       result.mealName || 'Selected meal',
+    healthScore:    score,
+    startingEnergy: score,
+    grade:          /^[ABCDF]$/.test(result.grade) ? result.grade : gradeFromScore(score),
+    reason:         result.reason || 'The scanner estimated this from the visible meal balance.',
+  };
+}
+
+function showMealResult() {
+  document.getElementById('meal-result-name').textContent = mealScan.mealName;
+  document.getElementById('meal-result-score').textContent = `${mealScan.startingEnergy} HEALTH`;
+  document.getElementById('meal-result-grade').textContent = `GRADE ${mealScan.grade}`;
+  document.getElementById('meal-result-reason').textContent = mealScan.reason;
+  document.getElementById('meal-result-starting-health').innerHTML =
+    `You will start the game with <strong>${mealScan.startingEnergy} health</strong>.`;
+  document.getElementById('meal-overlay').classList.add('hidden');
+  document.getElementById('meal-overlay').classList.remove('active');
+  document.getElementById('meal-result-overlay').classList.remove('hidden');
+}
+
+function showTitleScreen() {
+  document.getElementById('meal-result-overlay').classList.add('hidden');
+  document.getElementById('overlay').classList.remove('hidden');
+  document.getElementById('overlay').classList.add('active');
 }
 
 // ── Init / reset ──────────────────────────────────────────────────────────────
@@ -114,13 +260,12 @@ function showCongratulations() {
 
 document.getElementById('congrats-play-again').addEventListener('click', () => {
   document.getElementById('congrats-overlay').classList.add('hidden');
-  runConfig.run = 1; runConfig.tunnelLength = 200;
-  runConfig.maxEnergy = 100; runConfig.torpedoSpeed = 40;
-  runConfig.torpedoDamage = 1; runConfig.spreadShot = false;
-  runConfig.shieldHits = 0; runConfig.energyRegen = 0;
+  resetRunProgress();
   resetXP(xpState);
   applySubmarineLevel(player, 1);
   init();
+  document.body.classList.remove('pregame');
+  document.body.classList.add('game-active');
   state.running = true;
   clock.start();
 });
@@ -157,7 +302,10 @@ function startGame() {
   document.getElementById('overlay').classList.remove('active');
   document.getElementById('overlay').classList.add('hidden');
   showCutscene(0, () => {
+    resetRunProgress(mealScan.startingEnergy);
     init();
+    document.body.classList.remove('pregame');
+    document.body.classList.add('game-active');
     state.running = true;
     clock.start();
   });
@@ -166,19 +314,61 @@ function startGame() {
 // ── UI wiring ─────────────────────────────────────────────────────────────────
 document.getElementById('start-btn').addEventListener('click', startGame);
 
+document.getElementById('meal-file').addEventListener('change', async () => {
+  const file = document.getElementById('meal-file').files[0];
+  if (!file) return;
+  const preview = document.getElementById('meal-preview');
+  preview.src = await readFileAsDataUrl(file);
+  preview.classList.remove('hidden');
+});
+
+document.getElementById('meal-url').addEventListener('input', () => {
+  const file = document.getElementById('meal-file').files[0];
+  const url = document.getElementById('meal-url').value.trim();
+  if (file || !url) return;
+  const preview = document.getElementById('meal-preview');
+  preview.src = url;
+  preview.classList.remove('hidden');
+});
+
+document.getElementById('meal-next-btn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('meal-file');
+  const urlInput = document.getElementById('meal-url');
+  const status = document.getElementById('meal-status');
+  const nextBtn = document.getElementById('meal-next-btn');
+  const file = fileInput.files[0];
+  const typedUrl = urlInput.value.trim();
+
+  if (!file && !typedUrl) {
+    status.textContent = 'Choose a meal image or enter an image URL before continuing.';
+    return;
+  }
+
+  nextBtn.disabled = true;
+  status.textContent = 'Scanning meal...';
+
+  try {
+    const imageSource = file ? await readFileAsDataUrl(file) : typedUrl;
+    mealScan = await analyzeMealImage(imageSource);
+    resetRunProgress(mealScan.startingEnergy);
+    showMealResult();
+  } catch (error) {
+    status.textContent = error.message || 'Meal scan failed. Try another image.';
+  } finally {
+    nextBtn.disabled = false;
+  }
+});
+
+document.getElementById('meal-continue-btn').addEventListener('click', showTitleScreen);
+
 document.getElementById('restart-btn').addEventListener('click', () => {
   // Full reset — wipe run progress
-  runConfig.run          = 1;
-  runConfig.tunnelLength = 200;
-  runConfig.maxEnergy    = 100;
-  runConfig.torpedoSpeed = 40;
-  runConfig.torpedoDamage = 1;
-  runConfig.spreadShot   = false;
-  runConfig.shieldHits   = 0;
-  runConfig.energyRegen  = 0;
+  resetRunProgress();
   resetXP(xpState);
   applySubmarineLevel(player, 1);
   init();
+  document.body.classList.remove('pregame');
+  document.body.classList.add('game-active');
   state.running = true;
   clock.start();
 });
@@ -194,12 +384,10 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyF' && state.running && !state.over)
     fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime, { ...runConfig, level: xpState.level });
   if (e.code === 'KeyR' && state.over) {
-    runConfig.run = 1; runConfig.tunnelLength = 200;
-    runConfig.maxEnergy = 100; runConfig.torpedoSpeed = 40;
-    runConfig.torpedoDamage = 1; runConfig.spreadShot = false;
-    runConfig.shieldHits = 0; runConfig.energyRegen = 0;
-    resetXP(xpState); applySubmarineLevel(player, 1);
-    init(); state.running = true; clock.start();
+    resetRunProgress();
+    resetXP(xpState);
+    applySubmarineLevel(player, 1);
+    init(); document.body.classList.remove('pregame'); document.body.classList.add('game-active'); state.running = true; clock.start();
   }
 });
 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BioCurrent</title>
   </head>
-  <body>
+  <body class="pregame">
     <!-- HUD -->
     <div id="hud">
       <div id="score-display">CRYSTALS: <span id="score">0</span></div>
@@ -37,7 +37,41 @@
     <button id="fire-btn">FIRE</button>
 
     <!-- Overlay screens -->
-    <div id="overlay" class="active">
+    <div id="meal-overlay" class="active">
+      <h1>Meal Scan</h1>
+      <p class="meal-copy">
+        Upload your meal to calculate your initial starting health before entering the bloodstream.
+      </p>
+
+      <div id="meal-panel">
+        <label class="meal-upload-btn" for="meal-file">UPLOAD MEAL</label>
+        <input id="meal-file" type="file" accept="image/*" />
+        <input
+          id="meal-url"
+          type="url"
+          placeholder="OR ENTER IMAGE URL"
+          autocomplete="off"
+        />
+        <img id="meal-preview" class="hidden" alt="Selected meal preview" />
+      </div>
+
+      <p id="meal-status" aria-live="polite"></p>
+      <button id="meal-next-btn">NEXT</button>
+    </div>
+
+    <div id="meal-result-overlay" class="hidden">
+      <h1>Meal Result</h1>
+      <div id="meal-result-card">
+        <div id="meal-result-name">Meal analyzed</div>
+        <div id="meal-result-score">100 HEALTH</div>
+        <div id="meal-result-grade">GRADE A</div>
+        <p id="meal-result-reason"></p>
+        <p id="meal-result-starting-health"></p>
+      </div>
+      <button id="meal-continue-btn">CONTINUE</button>
+    </div>
+
+    <div id="overlay" class="hidden">
       <h1>BioCurrent</h1>
       <p>Pilot your bio-submarine through the bloodstream.<br>
          Dodge cholesterol, collect crystals, restore the flow.</p>

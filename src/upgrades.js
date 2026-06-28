@@ -3,7 +3,10 @@ export const UPGRADES = [
     id: 'energy_core',
     name: 'ENERGY CORE',
     desc: 'Max & starting energy +30',
-    apply: cfg => { cfg.maxEnergy += 30; },
+    apply: cfg => {
+      cfg.maxEnergy += 30;
+      cfg.startingEnergy += 30;
+    },
   },
   {
     id: 'torpedo_drive',
