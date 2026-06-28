@@ -24,8 +24,8 @@ export function createRenderer(canvas) {
 
 export function createScene() {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1c0008);   // brighter deep red
-  scene.fog = new THREE.FogExp2(0x2a0010, 0.018); // brighter fog, slightly less dense
+  scene.background = new THREE.Color(0x3a0810);
+  scene.fog = new THREE.FogExp2(0x4a0e18, 0.016);
   return scene;
 }
 
@@ -64,15 +64,15 @@ export function buildTunnel(scene, length = TUNNEL_LENGTH) {
   const bumpTexture = createTunnelBumpTexture(length);
 
   const material = new THREE.MeshStandardMaterial({
-    color:             0xb02535,
-    emissive:          0x5e1420,
-    emissiveIntensity: 1.1,
+    color:             0xcc3348,
+    emissive:          0x991828,
+    emissiveIntensity: 1.3,
     map:               wallTexture,
     bumpMap:           bumpTexture,
-    bumpScale:         0.08,
+    bumpScale:         0.05,
     side:              THREE.BackSide,
-    roughness:         0.95,
-    metalness:         0.0,
+    roughness:         0.55,
+    metalness:         0.08,
   });
 
   const tunnel = new THREE.Mesh(geometry, material);
@@ -87,29 +87,53 @@ function createTunnelWallTexture(length) {
   canvas.height = 1024;
   const ctx = canvas.getContext('2d');
 
+  // Warm, bright tissue base — no dark patches
   const base = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-  base.addColorStop(0, '#4c0713');
-  base.addColorStop(0.45, '#8f1b2d');
-  base.addColorStop(1, '#2a0310');
+  base.addColorStop(0,    '#8c1e2e');
+  base.addColorStop(0.35, '#aa2840');
+  base.addColorStop(0.65, '#962035');
+  base.addColorStop(1,    '#7e1828');
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  drawOrganicBlotches(ctx, canvas, 125);
-  drawCapillaryLines(ctx, canvas, 34);
-  addFineGrain(ctx, canvas, 18);
-
+  // Subtle tissue colour variation — screen mode only, never darkens
   ctx.globalCompositeOperation = 'screen';
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 90; i++) {
+    const x = randomBetween(-40, canvas.width + 40);
+    const y = randomBetween(-40, canvas.height + 40);
+    const rx = randomBetween(20, 130);
+    const ry = randomBetween(12, 80);
+    const r  = Math.max(rx, ry);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(randomBetween(-Math.PI, Math.PI));
+    ctx.scale(rx / r, ry / r);
+    const alpha = randomBetween(0.03, 0.10);
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    grad.addColorStop(0, `rgba(255, 80, 90, ${alpha})`);
+    grad.addColorStop(1, 'rgba(200, 40, 60, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Glistening surface highlights — mimics wet tissue
+  for (let i = 0; i < 18; i++) {
+    const x = randomBetween(0, canvas.width);
     const y = randomBetween(0, canvas.height);
-    const width = randomBetween(80, 260);
-    const x = randomBetween(-80, canvas.width);
-    const glow = ctx.createRadialGradient(x, y, 0, x, y, width);
-    glow.addColorStop(0, `rgba(255, ${randomBetween(86, 132)}, 74, ${randomBetween(0.04, 0.12)})`);
-    glow.addColorStop(1, 'rgba(255, 70, 60, 0)');
+    const r = randomBetween(40, 180);
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
+    glow.addColorStop(0, `rgba(255, 180, 160, ${randomBetween(0.04, 0.11)})`);
+    glow.addColorStop(1, 'rgba(255, 80, 70, 0)');
     ctx.fillStyle = glow;
-    ctx.fillRect(x - width, y - width, width * 2, width * 2);
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
   ctx.globalCompositeOperation = 'source-over';
+
+  drawCapillaryLines(ctx, canvas, 38);
+  addFineGrain(ctx, canvas, 10);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
@@ -168,42 +192,6 @@ function createTunnelBumpTexture(length) {
   return texture;
 }
 
-function drawOrganicBlotches(ctx, canvas, count) {
-  ctx.globalCompositeOperation = 'multiply';
-  for (let i = 0; i < count; i++) {
-    const x = randomBetween(-40, canvas.width + 40);
-    const y = randomBetween(-40, canvas.height + 40);
-    const rx = randomBetween(18, 110);
-    const ry = randomBetween(10, 72);
-    const radius = Math.max(rx, ry);
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(randomBetween(-Math.PI, Math.PI));
-    ctx.scale(rx / radius, ry / radius);
-    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
-    const darkAlpha = randomBetween(0.06, 0.24);
-    grad.addColorStop(0, `rgba(70, 0, 18, ${darkAlpha})`);
-    grad.addColorStop(randomBetween(0.35, 0.65), `rgba(128, 10, 30, ${darkAlpha * 0.55})`);
-    grad.addColorStop(1, 'rgba(40, 0, 18, 0)');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-  ctx.globalCompositeOperation = 'screen';
-  for (let i = 0; i < count * 0.45; i++) {
-    const x = randomBetween(-40, canvas.width + 40);
-    const y = randomBetween(-40, canvas.height + 40);
-    const radius = randomBetween(18, 90);
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    grad.addColorStop(0, `rgba(255, 110, 86, ${randomBetween(0.04, 0.12)})`);
-    grad.addColorStop(1, 'rgba(255, 96, 80, 0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-  }
-  ctx.globalCompositeOperation = 'source-over';
-}
 
 function drawCapillaryLines(ctx, canvas, count) {
   ctx.save();
@@ -274,9 +262,11 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
   // ── Red blood cells — biconcave discs, InstancedMesh ──
   const rbcGeo = new THREE.SphereGeometry(1, 6, 4);
   const rbcMat = new THREE.MeshStandardMaterial({
-    color:     0xbb1624,
-    roughness: 0.85,
-    metalness: 0.0,
+    color:             0xcc2030,
+    emissive:          0x880010,
+    emissiveIntensity: 0.9,
+    roughness:         0.7,
+    metalness:         0.0,
   });
   const RBC_COUNT = 80;
   const rbcMesh = new THREE.InstancedMesh(rbcGeo, rbcMat, RBC_COUNT);
@@ -295,29 +285,6 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
   }
   rbcMesh.instanceMatrix.needsUpdate = true;
   group.add(rbcMesh);
-
-  // ── Vessel wall ribs — InstancedMesh ──
-  const ribGeo = new THREE.TorusGeometry(TUNNEL_RADIUS - 0.05, 0.2, 7, 28);
-  const ribMat = new THREE.MeshStandardMaterial({
-    color:             0x3e0010,
-    emissive:          0x1e0008,
-    emissiveIntensity: 0.4,
-    roughness:         0.97,
-  });
-  const ribZStep = 13;
-  const ribCount = Math.min(Math.floor((length - 28) / ribZStep), 20);
-  const ribMesh = new THREE.InstancedMesh(ribGeo, ribMat, ribCount);
-  for (let i = 0; i < ribCount; i++) {
-    const z = -14 - i * ribZStep;
-    const c = getTunnelCenter(z);
-    _p.set(c.x, c.y, z);
-    _q.identity();
-    _s.set(1, 1, 1);
-    _m.compose(_p, _q, _s);
-    ribMesh.setMatrixAt(i, _m);
-  }
-  ribMesh.instanceMatrix.needsUpdate = true;
-  group.add(ribMesh);
 
   // ── Leukocytes (white blood cells) — InstancedMesh ──
   const wbcGeo = new THREE.IcosahedronGeometry(0.45, 0);
