@@ -84,13 +84,25 @@
         <strong>Click / F</strong> — fire torpedo &nbsp;|&nbsp;
         <strong>R</strong> — restart
       </p>
-      <button id="start-btn">START MISSION</button>
+      <div class="title-actions">
+        <form id="player-name-form">
+          <label for="player-name-input">PILOT CALLSIGN</label>
+          <div class="player-name-row">
+            <input id="player-name-input" name="playerName" type="text" maxlength="20" autocomplete="nickname" placeholder="ENTER YOUR NAME" required />
+            <button id="start-btn" type="submit">START MISSION</button>
+          </div>
+        </form>
+        <button id="leaderboard-btn" class="secondary-action" type="button">LEADERBOARD</button>
+      </div>
     </div>
 
     <div id="end-overlay" class="hidden">
       <h1 id="end-title">FLOW RESTORED</h1>
       <p id="end-stats"></p>
-      <button id="restart-btn">PLAY AGAIN</button>
+      <div class="result-actions">
+        <button id="end-save-score" type="button">SAVE SCORE</button>
+        <button id="restart-btn">PLAY AGAIN</button>
+      </div>
     </div>
 
     <div id="upgrade-overlay" class="hidden">
@@ -111,7 +123,42 @@
         <div class="stat-row">Runs completed <span id="congrats-runs">5</span></div>
         <div class="stat-row">Energy remaining <span id="congrats-energy">0</span>%</div>
       </div>
-      <button id="congrats-play-again">PLAY AGAIN</button>
+      <div class="result-actions">
+        <button id="congrats-save-score" type="button">SAVE SCORE</button>
+        <button id="congrats-play-again">PLAY AGAIN</button>
+      </div>
+    </div>
+
+    <!-- Leaderboard dialog -->
+    <div id="leaderboard-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title">
+      <section id="leaderboard-panel">
+        <header class="leaderboard-header">
+          <div>
+            <div class="leaderboard-kicker">BIOCURRENT RECORDS</div>
+            <h2 id="leaderboard-title">LEADERBOARD</h2>
+          </div>
+          <button id="leaderboard-close" type="button" aria-label="Close leaderboard" title="Close">&times;</button>
+        </header>
+
+        <form id="leaderboard-form" class="hidden">
+          <div>
+            <span class="leaderboard-label">CURRENT RESULT</span>
+            <strong id="leaderboard-result-summary"></strong>
+          </div>
+          <div class="leaderboard-submit-row">
+            <label class="sr-only" for="leaderboard-name">Player callsign</label>
+            <input id="leaderboard-name" name="playerName" type="text" maxlength="20" autocomplete="nickname" placeholder="ENTER CALLSIGN" required />
+            <button id="leaderboard-submit" type="submit">SAVE SCORE</button>
+          </div>
+        </form>
+
+        <div class="leaderboard-columns" aria-hidden="true">
+          <span>RANK / PILOT</span>
+          <span>CRYSTALS</span>
+        </div>
+        <ol id="leaderboard-list" aria-live="polite"></ol>
+        <p id="leaderboard-status" role="status"></p>
+      </section>
     </div>
 
     <!-- Cutscene overlay -->

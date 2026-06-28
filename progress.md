@@ -17,7 +17,20 @@ Original prompt: Use Virus.glb under download to replace boss
 - Verified the skip flow in the browser: Meal Scan hides, the title screen activates, and no console errors are reported.
 - Reframed the complete storyline around cardiovascular disease, arterial plaque, vessel narrowing, blockage removal, and restored circulation.
 - Renamed all Pathogen bosses to Plaque Alpha through Plaque Omega and aligned the title, upgrade, HUD, ending, and README copy.
+- Added a Supabase-backed top-10 leaderboard with a reusable title/result dialog, callsign persistence, score submission, loading/error/empty states, and responsive styling.
+- Changed mission scoring to accumulate across all five artery runs so the saved final result represents the full mission.
+- Added `supabase/migrations/202606280001_create_leaderboard_scores.sql` with read/insert-only RLS policies and documented the required dashboard setup.
+- Added `window.render_game_to_text` for browser test state inspection; the production build passes.
+- Added a required pilot callsign field before mission start; the name persists locally and prefills leaderboard submissions.
+- Playwright verified empty-name validation, name persistence, intro-to-gameplay transition, movement/fire flow, mocked Supabase top-score reads and inserts, desktop result dialog, and mobile title/leaderboard layouts with no console errors.
+- Live Supabase connectivity reaches the configured project; it currently returns the expected missing-table response until the migration is run.
+- Added cumulative broccoli/veggie and fries/junk-food counters to leaderboard records.
+- Added `meal-photos` Supabase Storage upload support; leaderboard rows store only `meal_photo_url` and display a thumbnail.
+- Added a second migration for the new columns, public Storage bucket, file-size/type restrictions, and insert-only upload policy.
+- Playwright verified both local-file upload and pasted-image import paths: each creates one Storage object, and the database payload contains only the resulting Supabase public URL plus both food counters.
 
 ## TODO
 
 - Visual verification reached the boss encounter, but the long automated run ended behind the game-over overlay; a clean yellow-boss screenshot is still pending.
+- Run the leaderboard migration in the Supabase SQL Editor before live score reads and writes can succeed.
+- Run both leaderboard migrations in filename order; the second creates the Storage bucket and meal-detail columns.

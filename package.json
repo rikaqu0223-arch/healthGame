@@ -9,9 +9,11 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "playwright": "^1.61.1",
     "vite": "^8.1.0"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
     "three": "^0.185.0"
   }
 }

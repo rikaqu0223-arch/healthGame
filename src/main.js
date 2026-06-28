@@ -14,6 +14,7 @@ import { createBoss, resetBoss, updateBoss, tickBossExplosion, getBossActivateZ,
 import { spawnExplosion, updateExplosions, EXPL_COLORS } from './particles.js';
 import { getUpgradeChoices } from './upgrades.js';
 import { showCutscene } from './story.js';
+import { getStoredPlayerName, initializeLeaderboard, storePlayerName } from './leaderboard.js';
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 const canvas   = document.getElementById('c');
@@ -46,6 +47,10 @@ const runConfig = {
   spreadShot:   false,
   shieldHits:   0,
   energyRegen:  0,
+  totalScore:   0,
+  attemptId:    0,
+  veggieCount:  0,
+  junkFoodCount: 0,
 };
 
 let mealScan = {
@@ -54,6 +59,9 @@ let mealScan = {
   startingEnergy: 100,
   grade:          'A',
   reason:         'Default launch health.',
+  photoFile:      null,
+  photoUrl:       '',
+  photoSourceUrl: '',
 };
 
 // Preload GLBs in background — done well before player clicks Start
@@ -82,7 +90,7 @@ function makeState() {
     z:            0,
     px:           0,
     py:           0,
-    score:        0,
+    score:        runConfig.totalScore,
     energy:       Math.min(runConfig.startingEnergy, runConfig.maxEnergy),
     maxEnergy:    runConfig.maxEnergy,
     timeLeft:     90 + (runConfig.run - 1) * 15,
@@ -94,6 +102,7 @@ function makeState() {
 }
 
 function resetRunProgress(startingEnergy = mealScan.startingEnergy) {
+  runConfig.attemptId++;
   runConfig.run            = 1;
   runConfig.tunnelLength   = 200;
   runConfig.startingEnergy = startingEnergy;
@@ -103,6 +112,14 @@ function resetRunProgress(startingEnergy = mealScan.startingEnergy) {
   runConfig.spreadShot     = false;
   runConfig.shieldHits     = 0;
   runConfig.energyRegen    = 0;
+  runConfig.totalScore     = 0;
+  runConfig.veggieCount    = 0;
+  runConfig.junkFoodCount  = 0;
+}
+
+function addScore(points) {
+  state.score += points;
+  runConfig.totalScore = state.score;
 }
 
 function clampScore(value) {
@@ -231,6 +248,9 @@ function skipMealScan() {
     startingEnergy: 100,
     grade:          'A',
     reason:         'Default launch health.',
+    photoFile:      null,
+    photoUrl:       '',
+    photoSourceUrl: '',
   };
   resetRunProgress(mealScan.startingEnergy);
   document.getElementById('meal-overlay').classList.add('hidden');
@@ -315,6 +335,13 @@ function selectUpgrade(upg) {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 function startGame() {
+  const playerNameInput = document.getElementById('player-name-input');
+  const playerName = storePlayerName(playerNameInput.value);
+  if (!playerName) {
+    playerNameInput.focus();
+    return;
+  }
+
   document.getElementById('overlay').classList.remove('active');
   document.getElementById('overlay').classList.add('hidden');
   showCutscene(0, () => {
@@ -328,7 +355,12 @@ function startGame() {
 }
 
 // ── UI wiring ─────────────────────────────────────────────────────────────────
-document.getElementById('start-btn').addEventListener('click', startGame);
+const playerNameInput = document.getElementById('player-name-input');
+playerNameInput.value = getStoredPlayerName();
+document.getElementById('player-name-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  startGame();
+});
 
 document.getElementById('meal-file').addEventListener('change', async () => {
   const file = document.getElementById('meal-file').files[0];
@@ -365,7 +397,12 @@ document.getElementById('meal-next-btn').addEventListener('click', async () => {
 
   try {
     const imageSource = file ? await readFileAsDataUrl(file) : typedUrl;
-    mealScan = await analyzeMealImage(imageSource);
+    mealScan = {
+      ...await analyzeMealImage(imageSource),
+      photoFile: file || null,
+      photoUrl: '',
+      photoSourceUrl: file ? '' : typedUrl,
+    };
     resetRunProgress(mealScan.startingEnergy);
     showMealResult();
   } catch (error) {
@@ -431,6 +468,47 @@ function takeDamage(amount) {
 // ── Render loop ───────────────────────────────────────────────────────────────
 const playerPos = new THREE.Vector3();
 
+const leaderboard = initializeLeaderboard();
+document.getElementById('leaderboard-btn').addEventListener('click', () => leaderboard.open());
+document.getElementById('end-save-score').addEventListener('click', () => {
+  leaderboard.open({
+    score: state.score,
+    runsCompleted: Math.max(0, runConfig.run - 1),
+    outcome: 'flow_blocked',
+    attemptId: runConfig.attemptId,
+    veggieCount: runConfig.veggieCount,
+    junkFoodCount: runConfig.junkFoodCount,
+    mealPhotoFile: mealScan.photoFile,
+    mealPhotoUrl: mealScan.photoUrl,
+    mealPhotoSourceUrl: mealScan.photoSourceUrl,
+  });
+});
+document.getElementById('congrats-save-score').addEventListener('click', () => {
+  leaderboard.open({
+    score: state.score,
+    runsCompleted: runConfig.run,
+    outcome: 'mission_complete',
+    attemptId: runConfig.attemptId,
+    veggieCount: runConfig.veggieCount,
+    junkFoodCount: runConfig.junkFoodCount,
+    mealPhotoFile: mealScan.photoFile,
+    mealPhotoUrl: mealScan.photoUrl,
+    mealPhotoSourceUrl: mealScan.photoSourceUrl,
+  });
+});
+
+window.render_game_to_text = () => JSON.stringify({
+  coordinateSystem: 'Player x/y are offsets from the vessel center; z decreases moving forward.',
+  mode: state.over ? 'result' : state.running ? 'playing' : 'menu',
+  player: { x: state.px, y: state.py, z: state.z },
+  score: state.score,
+  energy: Math.round(state.energy),
+  timeLeft: Math.max(0, Math.ceil(state.timeLeft)),
+  run: runConfig.run,
+  boss: boss.active ? { active: true, hp: boss.hp, maxHp: boss.maxHp } : { active: false },
+  leaderboardOpen: !document.getElementById('leaderboard-overlay').classList.contains('hidden'),
+});
+
 renderer.setAnimationLoop(() => {
   const delta = Math.min(clock.getDelta(), 0.05);
   const time  = clock.elapsedTime;
@@ -494,7 +572,7 @@ renderer.setAnimationLoop(() => {
       objects,
       playerPos,
       (crystal) => {
-        state.score += 10;
+        addScore(10);
         if (addXP(xpState, XP_VALUES[crystal.userData.type] ?? 5)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
         updateLevelHUD(xpState);
       },
@@ -502,14 +580,16 @@ renderer.setAnimationLoop(() => {
       (_orb)     => { state.energy = Math.min(runConfig.maxEnergy, state.energy + 25); flash('energy'); },
       (broc)    => {
         const cleared = clearObstaclesAhead(objects, state.z, 40);
-        state.score += 50 + cleared * 5;
+        runConfig.veggieCount++;
+        addScore(50 + cleared * 5);
         flash('broccoli');
         if (addXP(xpState, XP_VALUES.broccoli)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
         updateLevelHUD(xpState);
       },
       (fries)   => {
         const cleared = clearObstaclesAround(objects, playerPos, 25);
-        state.score += 30 + cleared * 5;
+        runConfig.junkFoodCount++;
+        addScore(30 + cleared * 5);
         flash('fries');
         if (addXP(xpState, XP_VALUES.fries)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
         updateLevelHUD(xpState);
