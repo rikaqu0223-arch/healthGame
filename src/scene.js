@@ -8,8 +8,8 @@ export const TUNNEL_LENGTH = 200;
 export function getTunnelCenter(z) {
   const t = -z;
   return {
-    x: Math.sin(t * 0.055) * 1.6 + Math.sin(t * 0.13)  * 0.55,
-    y: Math.sin(t * 0.070) * 1.1 + Math.sin(t * 0.17)  * 0.38,
+    x: Math.sin(t * 0.055) * 0.3 + Math.sin(t * 0.13) * 0.1,
+    y: Math.sin(t * 0.070) * 0.2 + Math.sin(t * 0.17) * 0.07,
   };
 }
 
