@@ -230,6 +230,11 @@ renderer.setAnimationLoop(() => {
       state.energy = Math.min(runConfig.maxEnergy, state.energy + runConfig.energyRegen * delta);
 
     updatePlayer(player, keys, delta, state);
+
+    // Halt forward progress while boss is alive
+    if (boss.active && !boss.defeated)
+      state.z = Math.max(state.z, getBossActivateZ(runConfig.tunnelLength) + 5);
+
     updateCamera(camera, state, delta);
     playerPos.set(state.px, state.py, state.z);
 
