@@ -141,6 +141,14 @@ export function resetBoss(boss, scene, tunnelLength = 200, bossHp = 10, fireInte
   boss.group.position.set(0, 0, getBossZ(tunnelLength));
   boss.body.material.emissiveIntensity = 1.4;
   if (variant) applyVariant(boss, variant);
+  // Shared projectile material — created once per run, reused for every shot
+  if (boss.projMat) boss.projMat.dispose();
+  boss.projMat = new THREE.MeshStandardMaterial({
+    color: boss.projColor,
+    emissive: boss.projColor,
+    emissiveIntensity: 2.5,
+    roughness: 0,
+  });
 }
 
 // ── Per-frame update ──────────────────────────────────────────────────────────
@@ -169,9 +177,9 @@ export function updateBoss(boss, state, delta, time, torpedoes, scene, onPlayerH
     boss.body.material.color.set(boss.baseBodyColor);
   }
 
-  // Fire — pattern depends on boss variant
+  // Fire — pattern depends on boss variant (cap live projectiles to keep GPU load bounded)
   boss.lastFired += delta;
-  if (boss.lastFired >= boss.fireInterval) {
+  if (boss.lastFired >= boss.fireInterval && boss.projectiles.length < 30) {
     boss.lastFired = 0;
     firePattern(boss, scene, state.px, state.py, state.z);
   }
@@ -269,21 +277,13 @@ function firePattern(boss, scene, px, py, pz) {
 }
 
 function shoot(boss, scene, tx, ty, tz, speed) {
-  const mat = new THREE.MeshStandardMaterial({
-    color: boss.projColor,
-    emissive: boss.projColor,
-    emissiveIntensity: 2.5,
-    roughness: 0,
-  });
-  const mesh = new THREE.Mesh(projGeo, mat);
+  const mesh = new THREE.Mesh(projGeo, boss.projMat);
   mesh.position.copy(boss.group.position);
   const dir = new THREE.Vector3(
     tx - boss.group.position.x,
     ty - boss.group.position.y,
     tz - boss.group.position.z
   ).normalize();
-  const pLight = new THREE.PointLight(boss.projColor, 3, 5);
-  mesh.add(pLight);
   mesh.userData = { dir, traveled: 0, speed };
   scene.add(mesh);
   boss.projectiles.push(mesh);
