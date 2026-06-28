@@ -4,15 +4,120 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 export function getBossZ(tunnelLength)         { return -(tunnelLength - 12); }
 export function getBossActivateZ(tunnelLength) { return -(tunnelLength - 35); }
 
-const FIRE_INTERVAL = 1.8;
-const PROJ_SPEED    = 12;
-const PROJ_RANGE    = 80;
-const BOSS_MODEL_URL = '/models/Virus.glb';
+const FIRE_INTERVAL        = 1.8;
+const PROJ_SPEED           = 12;
+const PROJ_RANGE           = 80;
+const BOSS_MODEL_URL       = '/models/Virus.glb';
 const TARGET_BOSS_DIAMETER = 4.6;
-const FAT_CELL_COLOR = 0xf2b632;
-const FAT_CELL_EMISSIVE = 0x6a2e00;
-const FAT_CELL_SPIKE = 0xffdf72;
-const FAT_CELL_LIGHT = 0xffbd45;
+const FAT_CELL_COLOR       = 0xf2b632;
+const FAT_CELL_EMISSIVE    = 0x6a2e00;
+const FAT_CELL_SPIKE       = 0xffdf72;
+const FAT_CELL_LIGHT       = 0xffbd45;
+const EXPL_DURATION        = 2.2;
+
+// ── Shared explosion geometry ─────────────────────────────────────────────────
+const explGeo = new THREE.IcosahedronGeometry(0.18, 0);
+const debGeo  = new THREE.TetrahedronGeometry(0.12, 0);
+
+function startExplosion(boss, scene) {
+  boss.exploding        = true;
+  boss.explodeTime      = 0;
+  boss.explodeNextPulse = 0.35;
+  boss.explodeParticles = [];
+  boss.group.visible    = false;
+  clearBossProjectiles(boss, scene);
+
+  const origin = boss.group.position.clone();
+  const scale  = boss.group.scale.x;
+  const cols   = [boss.projColor, 0xffffff, 0xff8800, 0xffee00];
+
+  for (let i = 0; i < 36; i++) {
+    const col = cols[i % cols.length];
+    const mat = new THREE.MeshStandardMaterial({
+      color: col, emissive: col, emissiveIntensity: 3,
+      transparent: true, opacity: 1, roughness: 0,
+    });
+    const mesh = new THREE.Mesh(i % 5 === 0 ? debGeo : explGeo, mat);
+    mesh.position.copy(origin);
+    mesh.position.x += (Math.random() - 0.5) * scale * 1.5;
+    mesh.position.y += (Math.random() - 0.5) * scale * 1.5;
+    const speed = (2 + Math.random() * 9) * scale;
+    const dir   = new THREE.Vector3(
+      Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5,
+    ).normalize().multiplyScalar(speed);
+    mesh.userData = {
+      vel:  dir,
+      spin: new THREE.Vector3(
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 10,
+      ),
+    };
+    scene.add(mesh);
+    boss.explodeParticles.push(mesh);
+  }
+
+  const fl = new THREE.PointLight(0xffffff, 30, 45);
+  fl.position.copy(origin);
+  scene.add(fl);
+  boss.explodeFlash1 = fl;
+
+  const fl2 = new THREE.PointLight(boss.projColor, 18, 35);
+  fl2.position.copy(origin);
+  scene.add(fl2);
+  boss.explodeFlash2 = fl2;
+}
+
+function tickExplosion(boss, scene, delta) {
+  boss.explodeTime += delta;
+  const t = Math.min(boss.explodeTime / EXPL_DURATION, 1);
+
+  boss.explodeFlash1.intensity = 30 * Math.max(0, 1 - t * 5);
+  const pulse = 0.5 + 0.5 * Math.sin(boss.explodeTime * 20);
+  boss.explodeFlash2.intensity = 18 * Math.max(0, 1 - t * 2.2) * pulse;
+
+  if (boss.explodeNextPulse > 0 && boss.explodeTime >= boss.explodeNextPulse) {
+    boss.explodeNextPulse = boss.explodeNextPulse < 0.5 ? 0.7 : -1;
+    for (let i = 0; i < 10; i++) {
+      const col = [boss.projColor, 0xff8800, 0xffee00][i % 3];
+      const mat = new THREE.MeshStandardMaterial({
+        color: col, emissive: col, emissiveIntensity: 3,
+        transparent: true, opacity: 1, roughness: 0,
+      });
+      const mesh = new THREE.Mesh(explGeo, mat);
+      mesh.position.copy(boss.explodeFlash2.position);
+      mesh.position.x += (Math.random() - 0.5) * 2;
+      mesh.position.y += (Math.random() - 0.5) * 2;
+      const speed = 1.5 + Math.random() * 5;
+      const dir = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize().multiplyScalar(speed);
+      mesh.userData = { vel: dir, spin: new THREE.Vector3((Math.random()-0.5)*8, (Math.random()-0.5)*8, (Math.random()-0.5)*8), secondary: true };
+      scene.add(mesh);
+      boss.explodeParticles.push(mesh);
+    }
+  }
+
+  for (const p of boss.explodeParticles) {
+    p.position.addScaledVector(p.userData.vel, delta);
+    p.userData.vel.multiplyScalar(p.userData.secondary ? 0.92 : 0.96);
+    p.rotation.x += p.userData.spin.x * delta;
+    p.rotation.y += p.userData.spin.y * delta;
+    p.rotation.z += p.userData.spin.z * delta;
+    const fade = Math.max(0, 1 - t * 1.15);
+    p.material.opacity = fade;
+    p.scale.setScalar(Math.max(0.05, fade));
+  }
+
+  if (t >= 1) {
+    for (const p of boss.explodeParticles) { p.material.dispose(); scene.remove(p); }
+    boss.explodeParticles = [];
+    scene.remove(boss.explodeFlash1);
+    scene.remove(boss.explodeFlash2);
+    boss.explodeFlash1 = null;
+    boss.explodeFlash2 = null;
+    boss.exploding = false;
+    boss.defeated  = true;
+  }
+}
 
 // ── Boss variants (one per run, last repeats for runs 6+) ─────────────────────
 export const BOSS_VARIANTS = [
@@ -122,6 +227,8 @@ export function createBoss(scene, tunnelLength = 200) {
     modelMaterials: [],
     mixer: null,
     active: false, defeated: false,
+    exploding: false, explodeTime: 0, explodeNextPulse: 0,
+    explodeParticles: [], explodeFlash1: null, explodeFlash2: null,
     hitFlash: 0, lastFired: 0,
     projectiles: [],
   };
@@ -266,19 +373,30 @@ function setModelHitFlash(boss, flashing) {
 // ── Reset (called each run) ───────────────────────────────────────────────────
 export function resetBoss(boss, scene, tunnelLength = 200, bossHp = 10, fireInterval = FIRE_INTERVAL, variant) {
   clearBossProjectiles(boss, scene);
-  boss.hp           = bossHp;
-  boss.maxHp        = bossHp;
-  boss.fireInterval = fireInterval;
-  boss.active       = false;
-  boss.defeated     = false;
-  boss.hitFlash     = 0;
-  boss.lastFired    = 0;
-  boss.patternPhase = 0;
-  boss.group.visible = false;
+  // Clean up any leftover explosion from a previous run
+  if (boss.explodeParticles) {
+    for (const p of boss.explodeParticles) { p.material.dispose(); scene.remove(p); }
+  }
+  if (boss.explodeFlash1) scene.remove(boss.explodeFlash1);
+  if (boss.explodeFlash2) scene.remove(boss.explodeFlash2);
+
+  boss.hp              = bossHp;
+  boss.maxHp           = bossHp;
+  boss.fireInterval    = fireInterval;
+  boss.active          = false;
+  boss.defeated        = false;
+  boss.exploding       = false;
+  boss.explodeTime     = 0;
+  boss.explodeParticles = [];
+  boss.explodeFlash1   = null;
+  boss.explodeFlash2   = null;
+  boss.hitFlash        = 0;
+  boss.lastFired       = 0;
+  boss.patternPhase    = 0;
+  boss.group.visible   = false;
   boss.group.position.set(0, 0, getBossZ(tunnelLength));
   boss.body.material.emissiveIntensity = 1.4;
   if (variant) applyVariant(boss, variant);
-  // Shared projectile material — created once per run, reused for every shot
   if (boss.projMat) boss.projMat.dispose();
   boss.projMat = new THREE.MeshStandardMaterial({
     color: boss.projColor,
@@ -290,6 +408,7 @@ export function resetBoss(boss, scene, tunnelLength = 200, bossHp = 10, fireInte
 
 // ── Per-frame update ──────────────────────────────────────────────────────────
 export function updateBoss(boss, state, delta, time, torpedoes, scene, onPlayerHit, onBossHit, torpedoDamage = 1) {
+  if (boss.exploding) { tickExplosion(boss, scene, delta); return; }
   if (!boss.active || boss.defeated) return;
   if (boss.mixer) boss.mixer.update(delta);
 
@@ -365,9 +484,7 @@ export function updateBoss(boss, state, delta, time, torpedoes, scene, onPlayerH
       boss.hitFlash = 0.12;
       onBossHit(boss.hp);
       if (boss.hp === 0) {
-        boss.defeated = true;
-        boss.group.visible = false;
-        clearBossProjectiles(boss, scene);
+        startExplosion(boss, scene);
       }
     }
   }

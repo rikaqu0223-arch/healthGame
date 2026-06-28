@@ -88,6 +88,7 @@ function makeState() {
     shieldHits:   runConfig.shieldHits,
     bossDefeated:    false,
     wallDmgCooldown: 0,
+    camShake:        0,
   };
 }
 
@@ -453,6 +454,12 @@ renderer.setAnimationLoop(() => {
       state.z = Math.max(state.z, getBossActivateZ(runConfig.tunnelLength) + 5);
 
     updateCamera(camera, state, delta);
+    if (state.camShake > 0) {
+      const s = state.camShake * 0.08;
+      camera.position.x += (Math.random() - 0.5) * s;
+      camera.position.y += (Math.random() - 0.5) * s;
+      state.camShake = Math.max(0, state.camShake - delta * 3);
+    }
     playerPos.set(state.px, state.py, state.z);
 
     // Enter a clean arena before any regular object can animate or collide this frame.
@@ -511,7 +518,7 @@ renderer.setAnimationLoop(() => {
       updateBoss(
         boss, state, delta, time, weapons.projectiles, scene,
         () => { takeDamage(20); },
-        (hp) => { updateBossBar(hp, boss.maxHp); flash('hit'); },
+        (hp) => { updateBossBar(hp, boss.maxHp); flash('hit'); if (hp === 0) state.camShake = 1.5; },
         runConfig.torpedoDamage,
       );
 
