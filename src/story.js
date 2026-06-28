@@ -5,6 +5,7 @@ const ACTS = [
   {
     title: 'ACT I — THE INFECTION BEGINS',
     accentColor: '#ff4466',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/8/82/SEM_blood_cells.jpg',
     lines: [
       { speaker: 'DR. REYES', text: "NanoSub-7, you're go for injection. The patient — a child — is failing fast." },
       { speaker: 'DR. REYES', text: "Something has colonised her bloodstream. Bio-crystalline fragments are everywhere — collect them to power your systems." },
@@ -16,6 +17,7 @@ const ACTS = [
   {
     title: 'ACT II — ADAPTATION',
     accentColor: '#ff6600',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/d/d7/Blood_clot_in_scanning_electron_microscopy.jpg',
     lines: [
       { speaker: 'PILOT',    text: "Alpha is down. But the tunnel ahead is longer... and something is already moving in it." },
       { speaker: 'DR. REYES', text: "A second organism has emerged. Pathogen Beta. It's learned from Alpha's defeat." },
@@ -28,6 +30,7 @@ const ACTS = [
   {
     title: 'ACT III — THE HEART CHAMBER',
     accentColor: '#00ff66',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Cardiac_muscle_microscope.jpg/1280px-Cardiac_muscle_microscope.jpg',
     lines: [
       { speaker: 'PILOT',    text: "Beta neutralised. Pushing deeper into the vascular system now." },
       { speaker: 'DR. REYES', text: "You're approaching the cardiac sector. Pathogen Gamma has fortified it." },
@@ -39,6 +42,7 @@ const ACTS = [
   {
     title: 'ACT IV — NEURAL BREACH',
     accentColor: '#00aaff',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/e/e0/A_spiny_stellate_neuron.png',
     lines: [
       { speaker: 'PILOT',    text: "Gamma's gone. But I'm picking up a signal — structured, repeating. Like a transmission." },
       { speaker: 'DR. REYES', text: "That's Pathogen Delta. It's breached the blood-brain barrier. This is now critical." },
@@ -50,6 +54,7 @@ const ACTS = [
   {
     title: 'ACT V — THE ORIGIN',
     accentColor: '#ffff44',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/5/5b/Herpesvirus_%28negative_staining%29.jpg',
     lines: [
       { speaker: 'PILOT',    text: "Delta is destroyed. I've reached the primary infection site. It's... ancient. This has been here a long time." },
       { speaker: 'DR. REYES', text: "Pathogen Omega. The origin strain. Every creature you've faced was its offspring." },
@@ -62,6 +67,7 @@ const ACTS = [
   {
     title: 'ACT VI — PATIENT SAVED',
     accentColor: '#44ffcc',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Red_Blood_Cells_Under_Microscope.jpg/1280px-Red_Blood_Cells_Under_Microscope.jpg',
     lines: [
       { speaker: 'DR. REYES', text: "NanoSub-7... all readings nominal. The infection — it's gone. Every last trace." },
       { speaker: 'PILOT',    text: "She's going to make it?" },
@@ -85,6 +91,10 @@ export function showCutscene(index, onComplete) {
   const textEl   = document.getElementById('cs-text');
   const nextBtn  = document.getElementById('cs-next');
   const skipBtn  = document.getElementById('cs-skip');
+  const imgEl    = document.getElementById('cs-image');
+
+  imgEl.src = act.image ?? '';
+  imgEl.style.display = act.image ? 'block' : 'none';
 
   titleEl.textContent = act.title;
   titleEl.style.color = act.accentColor;
