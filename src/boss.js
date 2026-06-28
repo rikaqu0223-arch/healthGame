@@ -13,7 +13,7 @@ const FAT_CELL_COLOR       = 0xf2b632;
 const FAT_CELL_EMISSIVE    = 0x6a2e00;
 const FAT_CELL_SPIKE       = 0xffdf72;
 const FAT_CELL_LIGHT       = 0xffbd45;
-const EXPL_DURATION        = 2.2;
+const EXPL_DURATION        = 4.4;
 
 // ── Shared explosion geometry ─────────────────────────────────────────────────
 const explGeo = new THREE.IcosahedronGeometry(0.18, 0);
@@ -77,7 +77,8 @@ function tickExplosion(boss, scene, delta) {
   boss.explodeFlash2.intensity = 18 * Math.max(0, 1 - t * 2.2) * pulse;
 
   if (boss.explodeNextPulse > 0 && boss.explodeTime >= boss.explodeNextPulse) {
-    boss.explodeNextPulse = boss.explodeNextPulse < 0.5 ? 0.7 : -1;
+    const next = boss.explodeNextPulse + 0.35;
+    boss.explodeNextPulse = next < 2.0 ? next : -1;
     for (let i = 0; i < 10; i++) {
       const col = [boss.projColor, 0xff8800, 0xffee00][i % 3];
       const mat = new THREE.MeshStandardMaterial({
@@ -102,7 +103,7 @@ function tickExplosion(boss, scene, delta) {
     p.rotation.x += p.userData.spin.x * delta;
     p.rotation.y += p.userData.spin.y * delta;
     p.rotation.z += p.userData.spin.z * delta;
-    const fade = Math.max(0, 1 - t * 1.15);
+    const fade = Math.max(0, 1 - t);
     p.material.opacity = fade;
     p.scale.setScalar(Math.max(0.05, fade));
   }
