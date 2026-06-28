@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { spawnBroccoli } from './broccoli.js';
 import { spawnFries } from './fries.js';
+import { spawnFish } from './fish.js';
+import { spawnHamburger } from './hamburger.js';
 import { spawnWBC } from './wbc.js';
 
 // ── Shared geometries & materials (reused for perf) ──────────────────────────
@@ -175,14 +177,20 @@ export function buildLevel(scene, tunnelLength = 200, run = 1) {
 
   for (let z = -10; z > -tunnelLength + 10; z -= step) {
     const roll = Math.random();
-    if (roll < 0.80) {
-      objects.push(spawnWBC(scene, z));               // 80% — WBC (shoot or dodge)
-    } else if (roll < 0.89) {
-      const b = spawnBroccoli(scene, z);              //  9% — broccoli (clears ahead)
+    if (roll < 0.60) {
+      objects.push(spawnWBC(scene, z));               // 60% — WBC
+    } else if (roll < 0.70) {
+      const b = spawnBroccoli(scene, z);              // 10% — broccoli (clears ahead)
       if (b) objects.push(b);
-    } else {
-      const f = spawnFries(scene, z);                // 11% — fries (clears radius)
+    } else if (roll < 0.80) {
+      const fi = spawnFish(scene, z);                 // 10% — fish (clears ahead)
+      if (fi) objects.push(fi);
+    } else if (roll < 0.90) {
+      const f = spawnFries(scene, z);                 // 10% — fries (clears radius)
       if (f) objects.push(f);
+    } else {
+      const h = spawnHamburger(scene, z);             // 10% — hamburger (clears radius)
+      if (h) objects.push(h);
     }
   }
   return objects;
@@ -249,6 +257,18 @@ export function updateObjects(objects, time) {
       obj.position.y += Math.sin(time * 2.5 + obj.position.z) * 0.001;
     }
 
+    if (t === 'fish' && !obj.userData.collected) {
+      obj.rotation.y = time * 1.4;
+      obj.position.y += Math.sin(time * 2.0 + obj.position.z) * 0.001;
+      obj.position.x += Math.sin(time * 1.2 + obj.position.z) * 0.0005;
+    }
+
+    if (t === 'hamburger' && !obj.userData.collected) {
+      obj.rotation.y = time * 1.0;
+      obj.rotation.z = Math.sin(time * 1.5 + obj.position.z) * 0.15;
+      obj.position.y += Math.sin(time * 1.8 + obj.position.z) * 0.001;
+    }
+
     if (t === 'orbit_crystal' && !obj.userData.collected) {
       const { centerX, centerY, centerZ, orbitRadius, orbitSpeed, orbitPhase } = obj.userData;
       obj.position.x = centerX + Math.cos(time * orbitSpeed + orbitPhase) * orbitRadius;
@@ -263,7 +283,7 @@ export function updateObjects(objects, time) {
 
 const _v = new THREE.Vector3();
 
-export function checkCollisions(objects, playerPos, onCrystal, onBlock, onEnergy, onBroccoli, onFries) {
+export function checkCollisions(objects, playerPos, onCrystal, onBlock, onEnergy, onBroccoli, onFries, onFish, onHamburger) {
   for (const obj of objects) {
     if (obj.userData.collected || obj.userData.hit) continue;
 
@@ -290,6 +310,14 @@ export function checkCollisions(objects, playerPos, onCrystal, onBlock, onEnergy
       obj.userData.collected = true;
       obj.visible = false;
       onFries(obj);
+    } else if (t === 'fish' && dist < 1.2) {
+      obj.userData.collected = true;
+      obj.visible = false;
+      onFish(obj);
+    } else if (t === 'hamburger' && dist < 1.0) {
+      obj.userData.collected = true;
+      obj.visible = false;
+      onHamburger(obj);
     }
   }
 }

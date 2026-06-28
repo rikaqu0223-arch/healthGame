@@ -494,6 +494,26 @@ body:not(.game-active) #boss-hud {
   100% { background: #ff9900; opacity: 0; }
 }
 
+#flash.flash-fish {
+  animation: flash-fish 0.6s ease-out forwards;
+}
+
+@keyframes flash-fish {
+  0%   { background: #00ccff; opacity: 0.55; }
+  60%  { background: #00aaff; opacity: 0.30; }
+  100% { background: #00ccff; opacity: 0; }
+}
+
+#flash.flash-hamburger {
+  animation: flash-hamburger 0.5s ease-out forwards;
+}
+
+@keyframes flash-hamburger {
+  0%   { background: #ff8800; opacity: 0.6; }
+  50%  { background: #ffbb00; opacity: 0.35; }
+  100% { background: #ff8800; opacity: 0; }
+}
+
 /* ── Level & XP HUD ── */
 #level-hud {
   position: fixed;

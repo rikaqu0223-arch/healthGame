@@ -4,9 +4,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 let _template = null;
 const _loader  = new GLTFLoader();
 
-export function loadBroccoliModel() {
+export function loadHamburgerModel() {
   return new Promise((resolve) => {
-    _loader.load('/Broccoli.glb', (gltf) => {
+    _loader.load('/Hamburger.glb', (gltf) => {
       const root = gltf.scene;
 
       const box    = new THREE.Box3().setFromObject(root);
@@ -20,21 +20,21 @@ export function loadBroccoliModel() {
       root.traverse(child => {
         if (!child.isMesh) return;
         child.material = child.material.clone();
-        child.material.emissive          = new THREE.Color(0x22ff55);
-        child.material.emissiveIntensity = 0.7;
+        child.material.emissive          = new THREE.Color(0xff8800);
+        child.material.emissiveIntensity = 0.8;
         child.frustumCulled = false;
       });
 
       _template = root;
       resolve();
     }, undefined, (err) => {
-      console.warn('Broccoli.glb failed to load:', err);
+      console.warn('Hamburger.glb failed to load:', err);
       resolve();
     });
   });
 }
 
-export function spawnBroccoli(scene, z) {
+export function spawnHamburger(scene, z) {
   if (!_template) return null;
 
   const group = _template.clone(true);
@@ -43,10 +43,7 @@ export function spawnBroccoli(scene, z) {
     (Math.random() - 0.5) * 4,
     z,
   );
-  group.userData = { type: 'broccoli', collected: false };
-
-  const glow = new THREE.PointLight(0x44ff88, 2.5, 5);
-  group.add(glow);
+  group.userData = { type: 'hamburger', collected: false };
 
   scene.add(group);
   return group;

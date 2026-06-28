@@ -5,6 +5,8 @@ import { createSubmarine, createInputState, updatePlayer, updateCamera, applySub
 import { buildLevel, updateObjects, checkCollisions, clearObstaclesAhead, clearObstaclesAround, clearLevelObjects } from './objects.js';
 import { loadBroccoliModel } from './broccoli.js';
 import { loadFriesModel } from './fries.js';
+import { loadFishModel } from './fish.js';
+import { loadHamburgerModel } from './hamburger.js';
 import { loadWBCModel } from './wbc.js';
 import { createSonar, fireSonar, updateSonar } from './sonar.js';
 import { updateHUD, showEnd, flash, showBossHUD, updateBossBar, hideBossHUD, updateRunHUD, updateLevelHUD, showLevelUp } from './hud.js';
@@ -67,6 +69,8 @@ let mealScan = {
 // Preload GLBs in background — done well before player clicks Start
 loadBroccoliModel();
 loadFriesModel();
+loadFishModel();
+loadHamburgerModel();
 loadWBCModel();
 
 let objects = [];
@@ -593,6 +597,17 @@ renderer.setAnimationLoop(() => {
         flash('fries');
         if (addXP(xpState, XP_VALUES.fries)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
         updateLevelHUD(xpState);
+      },
+      (_fish)   => {
+        const cleared = clearObstaclesAhead(objects, state.z, 40);
+        addScore(50 + cleared * 5);
+        flash('fish');
+      },
+      (_burger) => {
+        const cleared = clearObstaclesAround(objects, playerPos, 25);
+        runConfig.junkFoodCount++;
+        addScore(30 + cleared * 5);
+        flash('hamburger');
       },
     );
 
