@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BioCurrent</title>
+  </head>
+  <body>
+    <!-- HUD -->
+    <div id="hud">
+      <div id="score-display">CRYSTALS: <span id="score">0</span></div>
+      <div id="energy-bar-wrap">
+        <div id="energy-bar"></div>
+      </div>
+      <div id="timer-display">TIME: <span id="timer">90</span>s</div>
+    </div>
+
+    <!-- Sonar button (mobile + desktop) -->
+    <button id="sonar-btn">SONAR</button>
+
+    <!-- Overlay screens -->
+    <div id="overlay" class="active">
+      <h1>BioCurrent</h1>
+      <p>Pilot your bio-submarine through the bloodstream.<br>
+         Dodge cholesterol, collect crystals, restore the flow.</p>
+      <p class="controls-hint">
+        <strong>WASD / Arrows</strong> — steer &nbsp;|&nbsp;
+        <strong>Space</strong> — sonar pulse<br>
+        <strong>R</strong> — restart
+      </p>
+      <button id="start-btn">START MISSION</button>
+    </div>
+
+    <div id="end-overlay" class="hidden">
+      <h1 id="end-title">FLOW RESTORED</h1>
+      <p id="end-stats"></p>
+      <button id="restart-btn">PLAY AGAIN</button>
+    </div>
+
+    <canvas id="c"></canvas>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
