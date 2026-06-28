@@ -7,7 +7,7 @@ const flashEl   = document.getElementById('flash');
 const bossHudEl = document.getElementById('boss-hud');
 const bossBarEl = document.getElementById('boss-bar');
 
-export function showBossHUD(hp, maxHp, name = 'PATHOGEN') {
+export function showBossHUD(hp, maxHp, name = 'PLAQUE BLOCKAGE') {
   document.getElementById('boss-label').textContent = name;
   bossHudEl.classList.remove('hidden');
   bossBarEl.style.width = `${(hp / maxHp) * 100}%`;
@@ -77,7 +77,7 @@ export function showEnd(state) {
   const stats   = document.getElementById('end-stats');
 
   if (state.bossDefeated) {
-    title.textContent = 'PATHOGEN DESTROYED';
+    title.textContent = 'BLOCKAGE CLEARED';
     title.style.color = '#ff44ff';
     title.style.textShadow = '0 0 24px #ff44ff, 0 0 48px #aa00ff';
   } else if (state.energy <= 0) {

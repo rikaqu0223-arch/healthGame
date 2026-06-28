@@ -15,6 +15,8 @@ Original prompt: Use Virus.glb under download to replace boss
 - Production build and browser startup smoke test pass with no console errors.
 - Added a meal-scan `SKIP` option that restores the default 100 starting health and opens the BioCurrent title screen without an upload or API request.
 - Verified the skip flow in the browser: Meal Scan hides, the title screen activates, and no console errors are reported.
+- Reframed the complete storyline around cardiovascular disease, arterial plaque, vessel narrowing, blockage removal, and restored circulation.
+- Renamed all Pathogen bosses to Plaque Alpha through Plaque Omega and aligned the title, upgrade, HUD, ending, and README copy.
 
 ## TODO
 

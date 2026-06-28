@@ -122,35 +122,35 @@ function tickExplosion(boss, scene, delta) {
 // ── Boss variants (one per run, last repeats for runs 6+) ─────────────────────
 export const BOSS_VARIANTS = [
   {
-    name: 'PATHOGEN ALPHA',
+    name: 'PLAQUE ALPHA',
     bodyColor: 0x660088, bodyEmissive: 0x440066,
     spikeColor: 0xff0055, spikeEmissive: 0xcc0033,
     lightColor: 0xaa00ff, projColor: 0xff2200,
     scale: 1.5, attackPattern: 0,
   },
   {
-    name: 'PATHOGEN BETA',
+    name: 'PLAQUE BETA',
     bodyColor: 0x882200, bodyEmissive: 0x551100,
     spikeColor: 0xff6600, spikeEmissive: 0xcc4400,
     lightColor: 0xff6600, projColor: 0xff6600,
     scale: 1.2, attackPattern: 1,
   },
   {
-    name: 'PATHOGEN GAMMA',
+    name: 'PLAQUE GAMMA',
     bodyColor: 0x005533, bodyEmissive: 0x003322,
     spikeColor: 0x00ff66, spikeEmissive: 0x00cc44,
     lightColor: 0x00ff44, projColor: 0x00ff44,
     scale: 0.9, attackPattern: 2,
   },
   {
-    name: 'PATHOGEN DELTA',
+    name: 'PLAQUE DELTA',
     bodyColor: 0x002266, bodyEmissive: 0x001144,
     spikeColor: 0x00aaff, spikeEmissive: 0x0066cc,
     lightColor: 0x0088ff, projColor: 0x00ccff,
     scale: 0.65, attackPattern: 3,
   },
   {
-    name: 'PATHOGEN OMEGA',
+    name: 'PLAQUE OMEGA',
     bodyColor: 0x333300, bodyEmissive: 0x222200,
     spikeColor: 0xffffff, spikeEmissive: 0xffee00,
     lightColor: 0xffffff, projColor: 0xffffff,
