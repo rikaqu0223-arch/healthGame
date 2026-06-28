@@ -7,8 +7,9 @@ import { loadBroccoliModel } from './broccoli.js';
 import { createSonar, fireSonar, updateSonar } from './sonar.js';
 import { updateHUD, showEnd, flash, showBossHUD, updateBossBar, hideBossHUD, updateRunHUD } from './hud.js';
 import { createWeaponSystem, resetWeapons, fireTorpedo, updateWeapons } from './weapons.js';
-import { createBoss, resetBoss, updateBoss, getBossActivateZ, getBossZ } from './boss.js';
+import { createBoss, resetBoss, updateBoss, getBossActivateZ, getBossVariant } from './boss.js';
 import { getUpgradeChoices } from './upgrades.js';
+import { showCutscene } from './story.js';
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 const canvas   = document.getElementById('c');
@@ -75,8 +76,9 @@ function init() {
   objects    = buildLevel(scene, runConfig.tunnelLength, runConfig.run);
 
   const { hp, fireInterval } = bossDifficulty();
+  const variant = getBossVariant(runConfig.run);
   resetWeapons(weapons, scene);
-  resetBoss(boss, scene, runConfig.tunnelLength, hp, fireInterval);
+  resetBoss(boss, scene, runConfig.tunnelLength, hp, fireInterval, variant);
   hideBossHUD();
 
   state = makeState();
@@ -86,10 +88,30 @@ function init() {
   document.getElementById('end-overlay').classList.remove('active');
   document.getElementById('end-overlay').classList.add('hidden');
   document.getElementById('upgrade-overlay').classList.add('hidden');
+  document.getElementById('congrats-overlay').classList.add('hidden');
 
   updateHUD(state);
   updateRunHUD(runConfig.run, state.shieldHits);
 }
+
+// ── Congratulations screen ────────────────────────────────────────────────────
+function showCongratulations() {
+  document.getElementById('congrats-score').textContent  = state.score;
+  document.getElementById('congrats-runs').textContent   = runConfig.run;
+  document.getElementById('congrats-energy').textContent = Math.round(state.energy);
+  document.getElementById('congrats-overlay').classList.remove('hidden');
+}
+
+document.getElementById('congrats-play-again').addEventListener('click', () => {
+  document.getElementById('congrats-overlay').classList.add('hidden');
+  runConfig.run = 1; runConfig.tunnelLength = 200;
+  runConfig.maxEnergy = 100; runConfig.torpedoSpeed = 40;
+  runConfig.torpedoDamage = 1; runConfig.spreadShot = false;
+  runConfig.shieldHits = 0; runConfig.energyRegen = 0;
+  init();
+  state.running = true;
+  clock.start();
+});
 
 // ── Upgrade screen ────────────────────────────────────────────────────────────
 function showUpgradeScreen() {
@@ -122,9 +144,11 @@ function selectUpgrade(upg) {
 function startGame() {
   document.getElementById('overlay').classList.remove('active');
   document.getElementById('overlay').classList.add('hidden');
-  init();
-  state.running = true;
-  clock.start();
+  showCutscene(0, () => {
+    init();
+    state.running = true;
+    clock.start();
+  });
 }
 
 // ── UI wiring ─────────────────────────────────────────────────────────────────
@@ -227,7 +251,7 @@ renderer.setAnimationLoop(() => {
     if (!boss.active && state.z <= getBossActivateZ(runConfig.tunnelLength)) {
       boss.active = true;
       boss.group.visible = true;
-      showBossHUD(boss.hp, boss.maxHp);
+      showBossHUD(boss.hp, boss.maxHp, getBossVariant(runConfig.run).name);
     }
 
     if (boss.active) {
@@ -243,7 +267,8 @@ renderer.setAnimationLoop(() => {
         state.running = false;
         state.over    = true;
         hideBossHUD();
-        showUpgradeScreen();
+        const isFinal = runConfig.run >= 5;
+        showCutscene(runConfig.run, () => isFinal ? showCongratulations() : showUpgradeScreen());
       }
     }
 

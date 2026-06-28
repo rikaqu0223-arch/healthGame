@@ -21,7 +21,7 @@
 
     <!-- Boss HUD -->
     <div id="boss-hud" class="hidden">
-      <div id="boss-label">PATHOGEN PRIME</div>
+      <div id="boss-label">PATHOGEN ALPHA</div>
       <div id="boss-bar-wrap"><div id="boss-bar"></div></div>
     </div>
 
@@ -57,6 +57,34 @@
     </div>
 
     <div id="flash"></div>
+    <!-- Congratulations overlay -->
+    <div id="congrats-overlay" class="hidden">
+      <div id="congrats-badge">MISSION COMPLETE</div>
+      <h1 id="congrats-title">PATIENT SAVED</h1>
+      <p id="congrats-sub">All five pathogens eliminated. The infection has been eradicated.</p>
+      <div id="congrats-stats">
+        <div class="stat-row">Crystals collected <span id="congrats-score">0</span></div>
+        <div class="stat-row">Runs completed <span id="congrats-runs">5</span></div>
+        <div class="stat-row">Energy remaining <span id="congrats-energy">0</span>%</div>
+      </div>
+      <button id="congrats-play-again">PLAY AGAIN</button>
+    </div>
+
+    <!-- Cutscene overlay -->
+    <div id="cutscene-overlay" class="hidden">
+      <div id="cs-accent">
+        <div id="cs-title">ACT I</div>
+      </div>
+      <div id="cs-dialogue">
+        <div id="cs-speaker"></div>
+        <div id="cs-text"></div>
+      </div>
+      <div id="cs-controls">
+        <button id="cs-next">▶ NEXT</button>
+        <button id="cs-skip">SKIP</button>
+      </div>
+    </div>
+
     <canvas id="c"></canvas>
     <script type="module" src="/src/main.js"></script>
   </body>

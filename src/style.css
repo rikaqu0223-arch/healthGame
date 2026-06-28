@@ -73,6 +73,186 @@ canvas#c {
   box-shadow: 0 0 20px #00ccff88;
 }
 
+/* ── Congratulations overlay ── */
+#congrats-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px 24px;
+  background: radial-gradient(ellipse at center, #1a1200 0%, #000 70%);
+  text-align: center;
+}
+
+#congrats-overlay.hidden { display: none; }
+
+#congrats-badge {
+  font-size: 11px;
+  letter-spacing: 6px;
+  color: #ffcc00;
+  text-shadow: 0 0 12px #ffcc00;
+  border: 1px solid #ffcc0055;
+  padding: 6px 18px;
+  border-radius: 40px;
+}
+
+#congrats-title {
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  letter-spacing: 8px;
+  color: #fff;
+  text-shadow: 0 0 30px #ffcc00, 0 0 60px #ffaa0055;
+  animation: congrats-glow 2s ease-in-out infinite;
+}
+
+@keyframes congrats-glow {
+  0%, 100% { text-shadow: 0 0 30px #ffcc00, 0 0 60px #ffaa0055; }
+  50%       { text-shadow: 0 0 50px #ffee44, 0 0 90px #ffcc0088; }
+}
+
+#congrats-sub {
+  font-size: 14px;
+  opacity: 0.65;
+  max-width: 400px;
+  line-height: 1.7;
+}
+
+#congrats-stats {
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-row {
+  font-size: 13px;
+  letter-spacing: 2px;
+  opacity: 0.8;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  min-width: 260px;
+}
+
+.stat-row span {
+  color: #ffcc00;
+  font-weight: bold;
+}
+
+#congrats-play-again {
+  margin-top: 12px;
+  padding: 16px 48px;
+  background: transparent;
+  color: #ffcc00;
+  border: 2px solid #ffcc00;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+#congrats-play-again:hover {
+  background: rgba(255, 204, 0, 0.15);
+  box-shadow: 0 0 24px #ffcc0066;
+}
+
+/* ── Cutscene overlay ── */
+#cutscene-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 40px 24px;
+}
+
+#cutscene-overlay.hidden { display: none; }
+
+#cs-accent {
+  border-left: 3px solid #ff4466;
+  padding-left: 20px;
+  align-self: flex-start;
+  max-width: 640px;
+  width: 100%;
+}
+
+#cs-title {
+  font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: #ff4466;
+  text-shadow: 0 0 16px #ff4466;
+}
+
+#cs-dialogue {
+  max-width: 640px;
+  width: 100%;
+  min-height: 120px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 24px 28px;
+}
+
+#cs-speaker {
+  font-size: 11px;
+  letter-spacing: 3px;
+  margin-bottom: 12px;
+  opacity: 0.9;
+}
+
+#cs-text {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #ddd;
+  min-height: 60px;
+}
+
+#cs-controls {
+  display: flex;
+  gap: 16px;
+}
+
+#cs-next {
+  padding: 12px 32px;
+  background: transparent;
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#cs-next:hover { background: rgba(255,255,255,0.15); }
+
+#cs-skip {
+  padding: 12px 20px;
+  background: transparent;
+  color: #555;
+  border: 1px solid #333;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+#cs-skip:hover { color: #aaa; }
+
 /* ── HUD sub-row (run + shield) ── */
 #hud-sub {
   position: fixed;

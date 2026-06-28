@@ -5,7 +5,8 @@ const flashEl   = document.getElementById('flash');
 const bossHudEl = document.getElementById('boss-hud');
 const bossBarEl = document.getElementById('boss-bar');
 
-export function showBossHUD(hp, maxHp) {
+export function showBossHUD(hp, maxHp, name = 'PATHOGEN') {
+  document.getElementById('boss-label').textContent = name;
   bossHudEl.classList.remove('hidden');
   bossBarEl.style.width = `${(hp / maxHp) * 100}%`;
 }
