@@ -3,6 +3,16 @@ import * as THREE from 'three';
 export const TUNNEL_RADIUS = 4;
 export const TUNNEL_LENGTH = 200;
 
+// Returns the XY world-space center of the tunnel at a given world Z (negative = forward).
+// Pure sines so the curve starts at (0,0) and the player begins centred.
+export function getTunnelCenter(z) {
+  const t = -z;
+  return {
+    x: Math.sin(t * 0.055) * 1.6 + Math.sin(t * 0.13)  * 0.55,
+    y: Math.sin(t * 0.070) * 1.1 + Math.sin(t * 0.17)  * 0.38,
+  };
+}
+
 export function createRenderer(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -32,7 +42,8 @@ export function buildTunnel(scene, length = TUNNEL_LENGTH) {
   );
   geometry.rotateX(Math.PI / 2);
 
-  // Subtle radial noise so wall reads as organic tissue, not a clean pipe
+  // Radial organic noise + lateral curve offset so the tube visually bends.
+  // vertex z is in geometry-local space; world Z = z - length/2.
   const pos = geometry.attributes.position;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
@@ -42,8 +53,9 @@ export function buildTunnel(scene, length = TUNNEL_LENGTH) {
     const noise = 0.12 * Math.sin(ang * 7 + z * 0.25) * Math.cos(z * 0.18 + ang * 4);
     const r = Math.sqrt(x * x + y * y);
     const sc = 1 + noise / r;
-    pos.setX(i, x * sc);
-    pos.setY(i, y * sc);
+    const center = getTunnelCenter(z - length / 2);
+    pos.setX(i, x * sc + center.x);
+    pos.setY(i, y * sc + center.y);
   }
   pos.needsUpdate = true;
   geometry.computeVertexNormals();
@@ -297,7 +309,8 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
   const ribMesh = new THREE.InstancedMesh(ribGeo, ribMat, ribCount);
   for (let i = 0; i < ribCount; i++) {
     const z = -14 - i * ribZStep;
-    _p.set(0, 0, z);
+    const c = getTunnelCenter(z);
+    _p.set(c.x, c.y, z);
     _q.identity();
     _s.set(1, 1, 1);
     _m.compose(_p, _q, _s);

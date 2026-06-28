@@ -1,10 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { getTunnelCenter, TUNNEL_RADIUS } from './scene.js';
 
-const SPEED = 14;         // units / second forward
-const STRAFE = 6;         // lateral / vertical speed
-const MAX_OFFSET = 2.8;   // max radial distance from center
-const BANK_ANGLE = 0.35;  // roll when strafing
+const SPEED       = 14;   // units / second forward
+const STRAFE      = 6;    // lateral / vertical speed
+const BANK_ANGLE  = 0.35; // roll when strafing
+const WALL_HARD   = TUNNEL_RADIUS - 0.15; // push-back boundary
+const WALL_DAMAGE = TUNNEL_RADIUS - 0.5;  // damage zone starts here
 const SUBMARINE_MODEL_URL = '/models/low_poly_submarine.glb';
 const TARGET_MODEL_LENGTH = 1.75;
 
@@ -160,36 +162,45 @@ export function createInputState() {
 }
 
 export function updatePlayer(player, keys, delta, state) {
-  if (!state.running) return;
+  if (!state.running) return false;
 
   const { group, prop } = player;
 
-  // Forward progress
   state.z -= SPEED * delta;
 
-  // Lateral / vertical
   let dx = 0, dy = 0;
   if (keys['KeyA'] || keys['ArrowLeft'])  dx -= 1;
   if (keys['KeyD'] || keys['ArrowRight']) dx += 1;
   if (keys['KeyW'] || keys['ArrowUp'])    dy += 1;
   if (keys['KeyS'] || keys['ArrowDown'])  dy -= 1;
 
-  state.px = THREE.MathUtils.clamp(state.px + dx * STRAFE * delta, -MAX_OFFSET, MAX_OFFSET);
-  state.py = THREE.MathUtils.clamp(state.py + dy * STRAFE * delta, -MAX_OFFSET, MAX_OFFSET);
+  state.px += dx * STRAFE * delta;
+  state.py += dy * STRAFE * delta;
+
+  // Radial wall constraint — tunnel curves so walls close in on turns
+  const center = getTunnelCenter(state.z);
+  const offX   = state.px - center.x;
+  const offY   = state.py - center.y;
+  const offMag = Math.sqrt(offX * offX + offY * offY);
+
+  if (offMag > WALL_HARD) {
+    const sc = WALL_HARD / offMag;
+    state.px = center.x + offX * sc;
+    state.py = center.y + offY * sc;
+  }
 
   group.position.set(state.px, state.py, state.z);
-
-  // Roll when strafing
   group.rotation.z = THREE.MathUtils.lerp(group.rotation.z, -dx * BANK_ANGLE, 0.15);
   group.rotation.y = THREE.MathUtils.lerp(group.rotation.y,  dx * 0.1, 0.1);
-
-  // Spin the fallback propeller while the GLB is still loading.
   if (prop.visible) prop.rotation.x += 8 * delta;
+
+  return offMag > WALL_DAMAGE; // true = player is touching the wall
 }
 
 export function updateCamera(camera, state, delta) {
-  const targetX = state.px * 0.4;
-  const targetY = state.py * 0.3 + 0.8;
+  const center  = getTunnelCenter(state.z);
+  const targetX = state.px * 0.4 + center.x * 0.35;
+  const targetY = state.py * 0.3 + 0.8 + center.y * 0.25;
   const targetZ = state.z + 5;
 
   camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetX, 6 * delta);

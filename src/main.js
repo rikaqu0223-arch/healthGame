@@ -71,7 +71,8 @@ function makeState() {
     energy:       runConfig.maxEnergy,
     timeLeft:     90 + (runConfig.run - 1) * 15,
     shieldHits:   runConfig.shieldHits,
-    bossDefeated: false,
+    bossDefeated:    false,
+    wallDmgCooldown: 0,
   };
 }
 
@@ -236,7 +237,13 @@ renderer.setAnimationLoop(() => {
     if (runConfig.energyRegen > 0)
       state.energy = Math.min(runConfig.maxEnergy, state.energy + runConfig.energyRegen * delta);
 
-    updatePlayer(player, keys, delta, state);
+    const wallHit = updatePlayer(player, keys, delta, state);
+    if (state.wallDmgCooldown > 0) {
+      state.wallDmgCooldown -= delta;
+    } else if (wallHit) {
+      takeDamage(10);
+      state.wallDmgCooldown = 0.55;
+    }
 
     // Halt forward progress while boss is alive
     if (boss.active && !boss.defeated)
