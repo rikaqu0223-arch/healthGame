@@ -1,6 +1,6 @@
 import './style.css';
 import * as THREE from 'three';
-import { createRenderer, createScene, createCamera, buildTunnel, buildLighting, onResize } from './scene.js';
+import { createRenderer, createScene, createCamera, buildTunnel, buildLighting, buildBloodEnvironment, onResize } from './scene.js';
 import { createSubmarine, createInputState, updatePlayer, updateCamera } from './player.js';
 import { buildLevel, updateObjects, checkCollisions, clearObstaclesAhead } from './objects.js';
 import { loadBroccoliModel } from './broccoli.js';
@@ -19,6 +19,7 @@ const camera   = createCamera();
 
 const pulseLights = buildLighting(scene);
 let tunnelMesh    = null;
+let bloodEnv      = null;
 
 const player  = createSubmarine(scene);
 const keys    = createInputState();
@@ -72,7 +73,9 @@ function makeState() {
 function init() {
   for (const o of objects) scene.remove(o);
   if (tunnelMesh) scene.remove(tunnelMesh);
+  if (bloodEnv)   scene.remove(bloodEnv);
   tunnelMesh = buildTunnel(scene, runConfig.tunnelLength);
+  bloodEnv   = buildBloodEnvironment(scene, runConfig.tunnelLength);
   objects    = buildLevel(scene, runConfig.tunnelLength, runConfig.run);
 
   const { hp, fireInterval } = bossDifficulty();
