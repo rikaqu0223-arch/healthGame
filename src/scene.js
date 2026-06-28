@@ -5,7 +5,7 @@ export const TUNNEL_LENGTH = 200;
 
 export function createRenderer(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.3;
@@ -73,16 +73,13 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
   const _e = new THREE.Euler();
 
   // ── Red blood cells — biconcave discs, InstancedMesh ──
-  const rbcGeo = new THREE.SphereGeometry(1, 7, 4);
+  const rbcGeo = new THREE.SphereGeometry(1, 6, 4);
   const rbcMat = new THREE.MeshStandardMaterial({
-    color:       0xcc1828,
-    roughness:   0.85,
-    metalness:   0.0,
-    transparent: true,
-    opacity:     0.75,
-    side:        THREE.DoubleSide,
+    color:     0xbb1624,
+    roughness: 0.85,
+    metalness: 0.0,
   });
-  const RBC_COUNT = 160;
+  const RBC_COUNT = 80;
   const rbcMesh = new THREE.InstancedMesh(rbcGeo, rbcMat, RBC_COUNT);
   for (let i = 0; i < RBC_COUNT; i++) {
     const t = i / RBC_COUNT;
@@ -153,7 +150,7 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
     color:    0xcc3311,
     roughness: 0.85,
   });
-  const STRAND_COUNT = 18;
+  const STRAND_COUNT = 10;
   const strandMesh = new THREE.InstancedMesh(strandGeo, strandMat, STRAND_COUNT);
   for (let i = 0; i < STRAND_COUNT; i++) {
     const z = -12 - (i / STRAND_COUNT) * (length - 24);
@@ -182,7 +179,7 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
     emissiveIntensity: 0.6,
     roughness:         0.6,
   });
-  const PLAT_COUNT = 35;
+  const PLAT_COUNT = 18;
   const platMesh = new THREE.InstancedMesh(platGeo, platMat, PLAT_COUNT);
   for (let i = 0; i < PLAT_COUNT; i++) {
     const z = -8 - (i / PLAT_COUNT) * (length - 16) + (Math.random() - 0.5) * 3;

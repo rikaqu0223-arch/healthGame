@@ -23,7 +23,6 @@ export function loadFriesModel() {
         child.material = child.material.clone();
         child.material.emissive          = new THREE.Color(0xff9900);
         child.material.emissiveIntensity = 0.8;
-        child.frustumCulled = false;
       });
 
       _template = root;
@@ -45,10 +44,6 @@ export function spawnFries(scene, z) {
     z,
   );
   group.userData = { type: 'fries', collected: false };
-
-  // Warm orange glow
-  const glow = new THREE.PointLight(0xff8800, 2.5, 5);
-  group.add(glow);
 
   scene.add(group);
   return group;

@@ -192,6 +192,7 @@ export function buildLevel(scene, tunnelLength = 200, run = 1) {
 
 export function updateObjects(objects, time) {
   for (const obj of objects) {
+    if (obj.userData.hit || obj.userData.collected) continue;
     const t = obj.userData.type;
 
     if (t === 'crystal' && !obj.userData.collected) {
@@ -225,11 +226,9 @@ export function updateObjects(objects, time) {
       obj.position.y += Math.sin(time * 3 + obj.position.z) * 0.001;
     }
 
-    if (t === 'wbc' && !obj.userData.hit) {
+    if (t === 'wbc') {
       obj.rotation.y = time * obj.userData.rotSpeed;
       obj.rotation.x = Math.sin(time * 0.7 + obj.position.z) * 0.3;
-      if (obj.userData.pulseLight)
-        obj.userData.pulseLight.intensity = 1.5 + Math.sin(time * 4) * 0.8;
     }
 
     if (t === 'broccoli' && !obj.userData.collected) {

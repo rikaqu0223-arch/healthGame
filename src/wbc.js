@@ -36,7 +36,6 @@ export function loadWBCModel() {
         child.material.color            = new THREE.Color(0xffdd00);
         child.material.emissive         = new THREE.Color(0xff8800);
         child.material.emissiveIntensity = 0.6;
-        child.frustumCulled = false;
       });
 
       _template = root;
@@ -66,14 +65,9 @@ export function spawnWBC(scene, z) {
     z,
   );
 
-  // Yellow pulsing danger light
-  const danger = new THREE.PointLight(0xffaa00, 2.5, 5);
-  group.add(danger);
-
   group.userData = {
     type: 'wbc',
     hit:  false,
-    pulseLight: danger,
     rotSpeed: (Math.random() < 0.5 ? 1 : -1) * (0.4 + Math.random() * 0.6),
   };
 
