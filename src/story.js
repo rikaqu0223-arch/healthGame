@@ -1,3 +1,9 @@
+// ── Speaker portraits (anime-style via DiceBear Adventurer) ──────────────────
+const SPEAKER_PORTRAITS = {
+  'DR. REYES': 'https://api.dicebear.com/10.x/adventurer/png?seed=DrReyes&size=160&backgroundColor=1a0520',
+  'PILOT':     'https://api.dicebear.com/10.x/adventurer/png?seed=NanoSubPilot7&size=160&backgroundColor=040d1a',
+};
+
 // ── Story acts ────────────────────────────────────────────────────────────────
 // Index 0 = intro (before run 1). Index N = shown after defeating run N boss.
 
@@ -91,7 +97,8 @@ export function showCutscene(index, onComplete) {
   const textEl   = document.getElementById('cs-text');
   const nextBtn  = document.getElementById('cs-next');
   const skipBtn  = document.getElementById('cs-skip');
-  const imgEl    = document.getElementById('cs-image');
+  const imgEl      = document.getElementById('cs-image');
+  const portraitEl = document.getElementById('cs-portrait');
 
   imgEl.src = act.image ?? '';
   imgEl.style.display = act.image ? 'block' : 'none';
@@ -114,6 +121,8 @@ export function showCutscene(index, onComplete) {
     const { speaker, text } = act.lines[i];
     speakerEl.textContent = speaker + ':';
     speakerEl.style.color = act.accentColor;
+    portraitEl.src = SPEAKER_PORTRAITS[speaker] ?? '';
+    portraitEl.style.borderColor = act.accentColor;
     textEl.textContent = '';
 
     let ci = 0;

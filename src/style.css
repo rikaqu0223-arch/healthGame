@@ -213,13 +213,32 @@ canvas#c {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 6px;
-  padding: 24px 28px;
+  padding: 20px 24px;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+#cs-portrait {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid #ff4466;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #0a0010;
+  image-rendering: auto;
+}
+
+#cs-dialogue-body {
+  flex: 1;
+  min-width: 0;
 }
 
 #cs-speaker {
   font-size: 11px;
   letter-spacing: 3px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   opacity: 0.9;
 }
 
