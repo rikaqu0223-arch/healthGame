@@ -549,6 +549,10 @@ function shoot(boss, scene, tx, ty, tz, speed) {
   boss.projectiles.push(mesh);
 }
 
+export function tickBossExplosion(boss, scene, delta) {
+  if (boss.exploding) tickExplosion(boss, scene, delta);
+}
+
 function clearBossProjectiles(boss, scene) {
   for (const p of boss.projectiles) scene.remove(p);
   boss.projectiles = [];

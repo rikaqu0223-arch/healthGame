@@ -10,7 +10,8 @@ import { createSonar, fireSonar, updateSonar } from './sonar.js';
 import { updateHUD, showEnd, flash, showBossHUD, updateBossBar, hideBossHUD, updateRunHUD, updateLevelHUD, showLevelUp } from './hud.js';
 import { createXPState, resetXP, addXP, XP_VALUES } from './xp.js';
 import { createWeaponSystem, resetWeapons, fireTorpedo, updateWeapons } from './weapons.js';
-import { createBoss, resetBoss, updateBoss, getBossActivateZ, getBossVariant } from './boss.js';
+import { createBoss, resetBoss, updateBoss, tickBossExplosion, getBossActivateZ, getBossVariant } from './boss.js';
+import { spawnExplosion, updateExplosions, EXPL_COLORS } from './particles.js';
 import { getUpgradeChoices } from './upgrades.js';
 import { showCutscene } from './story.js';
 
@@ -484,6 +485,7 @@ renderer.setAnimationLoop(() => {
 
     updateWeapons(weapons, objects, scene, delta, (obj) => {
       flash('hit');
+      spawnExplosion(scene, obj.position.clone(), EXPL_COLORS[obj.userData?.type] ?? 0xff4400);
       const xp = XP_VALUES[obj?.userData?.type] ?? 20;
       if (addXP(xpState, xp)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
       updateLevelHUD(xpState);
@@ -496,7 +498,7 @@ renderer.setAnimationLoop(() => {
         if (addXP(xpState, XP_VALUES[crystal.userData.type] ?? 5)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
         updateLevelHUD(xpState);
       },
-      (_block)   => { takeDamage(15); },
+      (block)    => { takeDamage(15); spawnExplosion(scene, block.position.clone(), EXPL_COLORS[block.userData?.type] ?? 0xff4400); },
       (_orb)     => { state.energy = Math.min(runConfig.maxEnergy, state.energy + 25); flash('energy'); },
       (broc)    => {
         const cleared = clearObstaclesAhead(objects, state.z, 40);
@@ -543,6 +545,11 @@ renderer.setAnimationLoop(() => {
       showEnd(state);
     }
   }
+
+  // Run these outside the game-state guard so animations finish cleanly
+  // even if time/energy ends the run mid-explosion
+  tickBossExplosion(boss, scene, delta);
+  updateExplosions(delta);
 
   renderer.render(scene, camera);
 });
