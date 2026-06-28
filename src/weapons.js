@@ -4,20 +4,20 @@ const torpGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.7, 8);
 torpGeo.rotateX(Math.PI / 2);
 
 const torpMat = new THREE.MeshStandardMaterial({
-  emissiveIntensity: 3,
+  emissiveIntensity: 2,
   roughness: 0,
   metalness: 0.4,
 });
 
-// Color and length per level — matches submarine cosmetics
+// Red-themed color progression per level
 const TORPEDO_LEVELS = [
-  { color: 0x00ffee, length: 1.0 },  // 1 cyan
-  { color: 0x00ddff, length: 1.8 },  // 2 bright cyan
-  { color: 0x22ff88, length: 2.8 },  // 3 green
-  { color: 0xffcc00, length: 4.0 },  // 4 gold
-  { color: 0xff6600, length: 5.5 },  // 5 orange
-  { color: 0xdd44ff, length: 7.5 },  // 6 purple
-  { color: 0xffffff, length: 10.0 }, // 7+ white laser
+  { color: 0xcc0011, length: 1.0 },  // 1 deep red
+  { color: 0xff1122, length: 1.8 },  // 2 bright red
+  { color: 0xff3300, length: 2.8 },  // 3 red-orange
+  { color: 0xff5500, length: 4.0 },  // 4 orange-red
+  { color: 0xff0055, length: 5.5 },  // 5 crimson
+  { color: 0xff0099, length: 7.5 },  // 6 hot pink-red
+  { color: 0xff44cc, length: 10.0 }, // 7+ magenta laser
 ];
 
 const TORPEDO_SPEED = 40;
