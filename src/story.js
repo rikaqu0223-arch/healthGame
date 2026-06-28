@@ -60,13 +60,14 @@ const ACTS = [
     ],
   },
   {
-    title: 'CLASSIFIED — THE MUTATION PERSISTS',
-    accentColor: '#cc44ff',
+    title: 'ACT VI — PATIENT SAVED',
+    accentColor: '#44ffcc',
     lines: [
-      { speaker: 'DR. REYES', text: "Omega... wasn't the last. The infection is generating new strains." },
-      { speaker: 'PILOT',    text: "How many more can there be?" },
-      { speaker: 'DR. REYES', text: "As many as it takes to stop you. The patient is holding. Whatever you're doing — keep doing it." },
-      { speaker: 'PILOT',    text: "Then I keep going." },
+      { speaker: 'DR. REYES', text: "NanoSub-7... all readings nominal. The infection — it's gone. Every last trace." },
+      { speaker: 'PILOT',    text: "She's going to make it?" },
+      { speaker: 'DR. REYES', text: "She's going to make it. Vitals are stabilising. She's going to be okay." },
+      { speaker: 'PILOT',    text: "Then it was worth it. Every run, every hit. Worth it." },
+      { speaker: 'DR. REYES', text: "Patient saved. Mission complete. Get yourself home, Pilot." },
     ],
   },
 ];
