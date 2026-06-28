@@ -462,9 +462,6 @@ body:not(.game-active) #boss-hud {
   animation: flash-energy 0.35s ease-out forwards;
 }
 
-#flash.flash-hit {
-  animation: flash-hit 0.25s ease-out forwards;
-}
 
 #flash.flash-broccoli {
   animation: flash-broccoli 0.6s ease-out forwards;
@@ -480,10 +477,6 @@ body:not(.game-active) #boss-hud {
   100% { background: #00ff88; opacity: 0; }
 }
 
-@keyframes flash-hit {
-  0%   { background: #ffffff; opacity: 0.5; }
-  100% { background: #ffffff; opacity: 0; }
-}
 
 @keyframes flash-broccoli {
   0%   { background: #22ff66; opacity: 0.55; }
