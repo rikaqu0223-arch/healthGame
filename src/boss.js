@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export function getBossZ(tunnelLength)         { return -(tunnelLength - 12); }
 export function getBossActivateZ(tunnelLength) { return -(tunnelLength - 35); }
@@ -6,6 +7,12 @@ export function getBossActivateZ(tunnelLength) { return -(tunnelLength - 35); }
 const FIRE_INTERVAL = 1.8;
 const PROJ_SPEED    = 12;
 const PROJ_RANGE    = 80;
+const BOSS_MODEL_URL = '/models/Virus.glb';
+const TARGET_BOSS_DIAMETER = 4.6;
+const FAT_CELL_COLOR = 0xf2b632;
+const FAT_CELL_EMISSIVE = 0x6a2e00;
+const FAT_CELL_SPIKE = 0xffdf72;
+const FAT_CELL_LIGHT = 0xffbd45;
 
 // ── Boss variants (one per run, last repeats for runs 6+) ─────────────────────
 export const BOSS_VARIANTS = [
@@ -56,12 +63,16 @@ const projGeo = new THREE.SphereGeometry(0.25, 8, 8);
 // ── Build boss mesh ───────────────────────────────────────────────────────────
 export function createBoss(scene, tunnelLength = 200) {
   const group = new THREE.Group();
+  const fallbackRoot = new THREE.Group();
+  const modelRoot = new THREE.Group();
+  modelRoot.visible = false;
+  group.add(fallbackRoot, modelRoot);
 
   const body = new THREE.Mesh(
     new THREE.IcosahedronGeometry(1.8, 2),
     new THREE.MeshStandardMaterial({ color: 0x660088, emissive: 0x440066, emissiveIntensity: 1.4, roughness: 0.25, metalness: 0.7 })
   );
-  group.add(body);
+  fallbackRoot.add(body);
 
   const spikeRing = new THREE.Group();
   const spikeGeo  = new THREE.ConeGeometry(0.22, 1.8, 6);
@@ -77,14 +88,14 @@ export function createBoss(scene, tunnelLength = 200) {
     spikeRing.add(spike);
     spikes.push(spike);
   }
-  group.add(spikeRing);
+  fallbackRoot.add(spikeRing);
 
   const eye = new THREE.Mesh(
     new THREE.SphereGeometry(0.4, 12, 12),
     new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xff4400, emissiveIntensity: 3 })
   );
   eye.position.set(0, 0, 1.7);
-  group.add(eye);
+  fallbackRoot.add(eye);
 
   const light    = new THREE.PointLight(0xaa00ff, 6, 25);
   const eyeLight = new THREE.PointLight(0xff4400, 4, 12);
@@ -96,34 +107,160 @@ export function createBoss(scene, tunnelLength = 200) {
   group.visible = false;
   scene.add(group);
 
-  return {
-    group, body, spikeRing, spikes, light, eyeLight,
+  const boss = {
+    group, fallbackRoot, modelRoot, body, spikeRing, spikes, light, eyeLight,
     hp: 10, maxHp: 10,
     fireInterval: FIRE_INTERVAL,
     attackPattern: 0,
     patternPhase:  0,
     baseBodyColor: 0x660088,
+    baseLightColor: 0xaa00ff,
     projColor:     0xff2200,
+    currentVariant: BOSS_VARIANTS[0],
+    modelLoaded: false,
+    modelLoadFailed: false,
+    modelMaterials: [],
+    mixer: null,
     active: false, defeated: false,
     hitFlash: 0, lastFired: 0,
     projectiles: [],
   };
+
+  loadBossModel(boss);
+  return boss;
+}
+
+function loadBossModel(boss) {
+  const loader = new GLTFLoader();
+  loader.load(
+    BOSS_MODEL_URL,
+    (gltf) => {
+      const virusMesh = findVirusMesh(gltf.scene);
+      if (!virusMesh) {
+        boss.modelLoadFailed = true;
+        console.warn(`Could not find a mesh in ${BOSS_MODEL_URL}`);
+        return;
+      }
+
+      const model = prepareBossModel(virusMesh, boss.modelMaterials);
+      boss.modelRoot.add(model);
+      boss.model = model;
+      boss.modelLoaded = true;
+      boss.modelRoot.visible = true;
+      boss.fallbackRoot.visible = false;
+      applyModelVariant(boss, boss.currentVariant);
+
+      if (gltf.animations.length > 0) {
+        boss.mixer = new THREE.AnimationMixer(model);
+        for (const clip of gltf.animations) boss.mixer.clipAction(clip).play();
+      }
+    },
+    undefined,
+    (error) => {
+      console.warn(`Could not load ${BOSS_MODEL_URL}`, error);
+      boss.modelLoadFailed = true;
+    },
+  );
+}
+
+function findVirusMesh(root) {
+  let namedMesh = null;
+  let largestMesh = null;
+  let largestSize = -Infinity;
+
+  root.traverse((child) => {
+    if (!child.isMesh) return;
+    if (child.name.toLowerCase().includes('virus')) namedMesh = child;
+
+    const size = new THREE.Box3().setFromObject(child).getSize(new THREE.Vector3());
+    const maxAxis = Math.max(size.x, size.y, size.z);
+    if (maxAxis > largestSize) {
+      largestSize = maxAxis;
+      largestMesh = child;
+    }
+  });
+
+  return namedMesh || largestMesh;
+}
+
+function prepareBossModel(sourceMesh, materials) {
+  sourceMesh.removeFromParent();
+  const model = new THREE.Group();
+  model.add(sourceMesh);
+
+  const box = new THREE.Box3().setFromObject(model);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const maxAxis = Math.max(size.x, size.y, size.z);
+  const scale = maxAxis > 0 ? TARGET_BOSS_DIAMETER / maxAxis : 1;
+  model.scale.setScalar(scale);
+  model.position.copy(center).multiplyScalar(-scale);
+
+  model.traverse((child) => {
+    if (!child.isMesh) return;
+    child.frustumCulled = false;
+    const sourceMaterials = Array.isArray(child.material) ? child.material : [child.material];
+    const clonedMaterials = sourceMaterials.map((source) => {
+      const material = source.clone();
+      material.flatShading = true;
+      material.needsUpdate = true;
+      materials.push(material);
+      return material;
+    });
+    child.material = Array.isArray(child.material) ? clonedMaterials : clonedMaterials[0];
+  });
+
+  return model;
 }
 
 // ── Apply variant colors & scale ──────────────────────────────────────────────
 function applyVariant(boss, variant) {
-  boss.body.material.color.set(variant.bodyColor);
-  boss.body.material.emissive.set(variant.bodyEmissive);
-  boss.light.color.set(variant.lightColor);
-  boss.eyeLight.color.set(variant.lightColor);
+  boss.currentVariant = variant;
+  boss.body.material.color.set(FAT_CELL_COLOR);
+  boss.body.material.emissive.set(FAT_CELL_EMISSIVE);
+  boss.light.color.set(FAT_CELL_LIGHT);
+  boss.eyeLight.color.set(FAT_CELL_LIGHT);
+  boss.baseLightColor = FAT_CELL_LIGHT;
   for (const s of boss.spikes) {
-    s.material.color.set(variant.spikeColor);
-    s.material.emissive.set(variant.spikeEmissive);
+    s.material.color.set(FAT_CELL_SPIKE);
+    s.material.emissive.set(FAT_CELL_EMISSIVE);
   }
   boss.group.scale.setScalar(variant.scale);
-  boss.baseBodyColor = variant.bodyColor;
+  boss.baseBodyColor = FAT_CELL_COLOR;
   boss.projColor     = variant.projColor;
   boss.attackPattern = variant.attackPattern;
+  applyModelVariant(boss, variant);
+}
+
+function applyModelVariant(boss, _variant) {
+  const tint = new THREE.Color(FAT_CELL_COLOR);
+  for (const material of boss.modelMaterials) {
+    if (material.color) {
+      if (!material.userData.virusOriginalColor) {
+        material.userData.virusOriginalColor = material.color.clone();
+      }
+      material.color.copy(material.userData.virusOriginalColor).lerp(tint, 0.78);
+      material.userData.virusBaseColor = material.color.clone();
+    }
+    if (material.emissive) {
+      material.emissive.set(FAT_CELL_EMISSIVE);
+      material.emissiveIntensity = 0.7;
+      material.userData.virusBaseEmissive = material.emissive.clone();
+      material.userData.virusBaseEmissiveIntensity = material.emissiveIntensity;
+    }
+  }
+}
+
+function setModelHitFlash(boss, flashing) {
+  for (const material of boss.modelMaterials) {
+    if (material.color && material.userData.virusBaseColor) {
+      material.color.copy(flashing ? new THREE.Color(0xffffff) : material.userData.virusBaseColor);
+    }
+    if (material.emissive && material.userData.virusBaseEmissive) {
+      material.emissive.copy(flashing ? new THREE.Color(0xffffff) : material.userData.virusBaseEmissive);
+      material.emissiveIntensity = flashing ? 2.8 : material.userData.virusBaseEmissiveIntensity;
+    }
+  }
 }
 
 // ── Reset (called each run) ───────────────────────────────────────────────────
@@ -154,6 +291,7 @@ export function resetBoss(boss, scene, tunnelLength = 200, bossHp = 10, fireInte
 // ── Per-frame update ──────────────────────────────────────────────────────────
 export function updateBoss(boss, state, delta, time, torpedoes, scene, onPlayerHit, onBossHit, torpedoDamage = 1) {
   if (!boss.active || boss.defeated) return;
+  if (boss.mixer) boss.mixer.update(delta);
 
   // Movement — speed and amplitude scale with pattern
   const speedScale = 1 + boss.attackPattern * 0.12;
@@ -172,9 +310,14 @@ export function updateBoss(boss, state, delta, time, torpedoes, scene, onPlayerH
     boss.hitFlash -= delta;
     boss.body.material.emissiveIntensity = 5;
     boss.body.material.color.set(0xffffff);
+    boss.light.color.set(0xffffff);
+    boss.light.intensity = 12;
+    setModelHitFlash(boss, true);
   } else {
     boss.body.material.emissiveIntensity = 1.4;
     boss.body.material.color.set(boss.baseBodyColor);
+    boss.light.color.set(boss.baseLightColor);
+    setModelHitFlash(boss, false);
   }
 
   // Fire — pattern depends on boss variant (cap live projectiles to keep GPU load bounded)

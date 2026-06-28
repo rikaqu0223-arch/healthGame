@@ -188,6 +188,13 @@ export function buildLevel(scene, tunnelLength = 200, run = 1) {
   return objects;
 }
 
+export function clearLevelObjects(objects, scene) {
+  const removed = objects.length;
+  for (const obj of objects) scene.remove(obj);
+  objects.length = 0;
+  return removed;
+}
+
 // ── Per-frame update: animate + cull ────────────────────────────────────────
 
 export function updateObjects(objects, time) {

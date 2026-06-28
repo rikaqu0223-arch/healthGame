@@ -2,7 +2,7 @@ import './style.css';
 import * as THREE from 'three';
 import { createRenderer, createScene, createCamera, buildTunnel, buildLighting, buildBloodEnvironment, onResize } from './scene.js';
 import { createSubmarine, createInputState, updatePlayer, updateCamera, applySubmarineLevel } from './player.js';
-import { buildLevel, updateObjects, checkCollisions, clearObstaclesAhead, clearObstaclesAround } from './objects.js';
+import { buildLevel, updateObjects, checkCollisions, clearObstaclesAhead, clearObstaclesAround, clearLevelObjects } from './objects.js';
 import { loadBroccoliModel } from './broccoli.js';
 import { loadFriesModel } from './fries.js';
 import { loadWBCModel } from './wbc.js';
@@ -222,6 +222,20 @@ function showTitleScreen() {
   document.getElementById('overlay').classList.add('active');
 }
 
+function skipMealScan() {
+  mealScan = {
+    mealName:       'Unscanned meal',
+    healthScore:    100,
+    startingEnergy: 100,
+    grade:          'A',
+    reason:         'Default launch health.',
+  };
+  resetRunProgress(mealScan.startingEnergy);
+  document.getElementById('meal-overlay').classList.add('hidden');
+  document.getElementById('meal-overlay').classList.remove('active');
+  showTitleScreen();
+}
+
 // ── Init / reset ──────────────────────────────────────────────────────────────
 function init() {
   for (const o of objects) scene.remove(o);
@@ -360,6 +374,7 @@ document.getElementById('meal-next-btn').addEventListener('click', async () => {
 });
 
 document.getElementById('meal-continue-btn').addEventListener('click', showTitleScreen);
+document.getElementById('meal-skip-btn').addEventListener('click', skipMealScan);
 
 document.getElementById('restart-btn').addEventListener('click', () => {
   // Full reset — wipe run progress
@@ -440,6 +455,14 @@ renderer.setAnimationLoop(() => {
     updateCamera(camera, state, delta);
     playerPos.set(state.px, state.py, state.z);
 
+    // Enter a clean arena before any regular object can animate or collide this frame.
+    if (!boss.active && state.z <= getBossActivateZ(runConfig.tunnelLength)) {
+      clearLevelObjects(objects, scene);
+      boss.active = true;
+      boss.group.visible = true;
+      showBossHUD(boss.hp, boss.maxHp, getBossVariant(runConfig.run).name);
+    }
+
     updateSonar(sonar, playerPos, delta);
     updateObjects(objects, time);
 
@@ -483,13 +506,6 @@ renderer.setAnimationLoop(() => {
         updateLevelHUD(xpState);
       },
     );
-
-    // Activate boss when player nears the end
-    if (!boss.active && state.z <= getBossActivateZ(runConfig.tunnelLength)) {
-      boss.active = true;
-      boss.group.visible = true;
-      showBossHUD(boss.hp, boss.maxHp, getBossVariant(runConfig.run).name);
-    }
 
     if (boss.active) {
       updateBoss(

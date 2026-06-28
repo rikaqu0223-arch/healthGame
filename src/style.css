@@ -704,6 +704,14 @@ body:not(.game-active) #boss-hud {
   text-shadow: 0 0 10px #ff884455;
 }
 
+.meal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 48px;
+}
+
 #meal-result-card {
   width: min(480px, 100%);
   display: grid;
@@ -760,6 +768,30 @@ body:not(.game-active) #boss-hud {
 #meal-next-btn:disabled {
   opacity: 0.45;
   cursor: wait;
+}
+
+.meal-actions #meal-next-btn {
+  margin: 8px 0 0;
+}
+
+#meal-skip-btn {
+  min-height: 48px;
+  margin-top: 8px;
+  padding: 12px 20px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.58);
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: color 0.15s, text-shadow 0.15s;
+}
+
+#meal-skip-btn:hover,
+#meal-skip-btn:focus-visible {
+  color: #fff;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.55);
 }
 
 /* Final visibility guards: these must override every screen-specific display rule. */
