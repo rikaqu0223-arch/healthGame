@@ -3,8 +3,6 @@ import * as THREE from 'three';
 export const TUNNEL_RADIUS = 4;
 export const TUNNEL_LENGTH = 200;
 
-// Returns the XY world-space center of the tunnel at a given world Z (negative = forward).
-// Pure sines so the curve starts at (0,0) and the player begins centred.
 export function getTunnelCenter(z) {
   const t = -z;
   return {
@@ -18,14 +16,15 @@ export function createRenderer(canvas) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.3;
+  renderer.toneMappingExposure = 1.7;  // brighter — blood is vivid red, not a dark cave
   return renderer;
 }
 
 export function createScene() {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x3a0810);
-  scene.fog = new THREE.FogExp2(0x4a0e18, 0.016);
+  // Warm vivid red — the environment is lit by a dense mass of scarlet RBCs
+  scene.background = new THREE.Color(0x8a1e28);
+  scene.fog = new THREE.FogExp2(0x921e2a, 0.013);
   return scene;
 }
 
@@ -36,21 +35,22 @@ export function createCamera() {
 }
 
 export function buildTunnel(scene, length = TUNNEL_LENGTH) {
+  // More height segments so the organic longitudinal-fold noise has resolution
   const geometry = new THREE.CylinderGeometry(
     TUNNEL_RADIUS, TUNNEL_RADIUS, length,
-    32, 1, true   // fewer height segments — no per-vertex effect needs them
+    36, 2, true
   );
   geometry.rotateX(Math.PI / 2);
 
-  // Radial organic noise + lateral curve offset so the tube visually bends.
-  // vertex z is in geometry-local space; world Z = z - length/2.
+  // Gentle organic noise — avoids rings, produces longitudinal folds like real vessel walls
   const pos = geometry.attributes.position;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const y = pos.getY(i);
     const z = pos.getZ(i);
     const ang = Math.atan2(y, x);
-    const noise = 0.12 * Math.sin(ang * 7 + z * 0.25) * Math.cos(z * 0.18 + ang * 4);
+    // Low-frequency longitudinal variation, no circumferential ring pattern
+    const noise = 0.08 * Math.sin(ang * 4 + z * 0.10) * Math.cos(z * 0.07 + ang * 2);
     const r = Math.sqrt(x * x + y * y);
     const sc = 1 + noise / r;
     const center = getTunnelCenter(z - length / 2);
@@ -63,16 +63,18 @@ export function buildTunnel(scene, length = TUNNEL_LENGTH) {
   const wallTexture = createTunnelWallTexture(length);
   const bumpTexture = createTunnelBumpTexture(length);
 
+  // Endothelium: pale blush pink, smooth and glistening (wet tissue)
+  // Research: tunica intima is "fine, transparent, colorless" — pale pink from the collagen behind it
   const material = new THREE.MeshStandardMaterial({
-    color:             0xcc3348,
-    emissive:          0x991828,
-    emissiveIntensity: 1.3,
+    color:             0xD890A8,   // pale blush pink — endothelium
+    emissive:          0xA03858,   // warm pink-red glow from surrounding blood
+    emissiveIntensity: 0.5,
     map:               wallTexture,
     bumpMap:           bumpTexture,
-    bumpScale:         0.05,
+    bumpScale:         0.03,
     side:              THREE.BackSide,
-    roughness:         0.55,
-    metalness:         0.08,
+    roughness:         0.32,       // smooth, wet — like oral mucosa
+    metalness:         0.18,       // slight specularity for glistening surface
   });
 
   const tunnel = new THREE.Mesh(geometry, material);
@@ -81,59 +83,53 @@ export function buildTunnel(scene, length = TUNNEL_LENGTH) {
   return tunnel;
 }
 
+// Pale blush-pink endothelium texture — longitudinal folds, glistening highlights,
+// subtle capillary markings. No dark patches.
 function createTunnelWallTexture(length) {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 1024;
   const ctx = canvas.getContext('2d');
 
-  // Warm, bright tissue base — no dark patches
+  // Pale pink base (endothelium + underlying collagen)
   const base = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-  base.addColorStop(0,    '#8c1e2e');
-  base.addColorStop(0.35, '#aa2840');
-  base.addColorStop(0.65, '#962035');
-  base.addColorStop(1,    '#7e1828');
+  base.addColorStop(0,    '#c87890');
+  base.addColorStop(0.35, '#d88898');
+  base.addColorStop(0.65, '#cc7890');
+  base.addColorStop(1,    '#ba6880');
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Subtle tissue colour variation — screen mode only, never darkens
+  // Longitudinal folds — run along tube axis, not circumferentially (no rings)
   ctx.globalCompositeOperation = 'screen';
-  for (let i = 0; i < 90; i++) {
-    const x = randomBetween(-40, canvas.width + 40);
-    const y = randomBetween(-40, canvas.height + 40);
-    const rx = randomBetween(20, 130);
-    const ry = randomBetween(12, 80);
-    const r  = Math.max(rx, ry);
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(randomBetween(-Math.PI, Math.PI));
-    ctx.scale(rx / r, ry / r);
-    const alpha = randomBetween(0.03, 0.10);
-    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    grad.addColorStop(0, `rgba(255, 80, 90, ${alpha})`);
-    grad.addColorStop(1, 'rgba(200, 40, 60, 0)');
+  for (let i = 0; i < 14; i++) {
+    const x = randomBetween(0, canvas.width);
+    const w = randomBetween(12, 55);
+    const alpha = randomBetween(0.03, 0.09);
+    const grad = ctx.createLinearGradient(x - w, 0, x + w, 0);
+    grad.addColorStop(0, 'rgba(255, 200, 220, 0)');
+    grad.addColorStop(0.5, `rgba(255, 200, 220, ${alpha})`);
+    grad.addColorStop(1, 'rgba(255, 200, 220, 0)');
     ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // Glistening surface highlights — mimics wet tissue
-  for (let i = 0; i < 18; i++) {
+  // Wet glistening surface highlights — moist epithelium catches light
+  for (let i = 0; i < 28; i++) {
     const x = randomBetween(0, canvas.width);
     const y = randomBetween(0, canvas.height);
-    const r = randomBetween(40, 180);
+    const r = randomBetween(18, 110);
     const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
-    glow.addColorStop(0, `rgba(255, 180, 160, ${randomBetween(0.04, 0.11)})`);
-    glow.addColorStop(1, 'rgba(255, 80, 70, 0)');
+    glow.addColorStop(0, `rgba(255, 240, 248, ${randomBetween(0.06, 0.16)})`);
+    glow.addColorStop(1, 'rgba(255, 160, 190, 0)');
     ctx.fillStyle = glow;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
   ctx.globalCompositeOperation = 'source-over';
 
-  drawCapillaryLines(ctx, canvas, 38);
-  addFineGrain(ctx, canvas, 10);
+  // Faint capillary/venule networks visible through vessel wall
+  drawCapillaryLines(ctx, canvas, 28);
+  addFineGrain(ctx, canvas, 7);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
@@ -144,54 +140,60 @@ function createTunnelWallTexture(length) {
   return texture;
 }
 
+// Bump map: endothelial cobblestone cell mosaic + longitudinal ridges
 function createTunnelBumpTexture(length) {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
 
-  ctx.fillStyle = '#777';
+  ctx.fillStyle = '#808080';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  for (let i = 0; i < 180; i++) {
+  // Endothelial cell mosaic — flat squamous cells in cobblestone pattern
+  // Each cell is a slightly raised ellipse (nucleus bump) surrounded by flat area
+  for (let i = 0; i < 300; i++) {
     const x = Math.random() * canvas.width;
     const y = Math.random() * canvas.height;
-    const radius = randomBetween(6, 42);
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    grad.addColorStop(0, `rgba(225, 225, 225, ${randomBetween(0.10, 0.34)})`);
-    grad.addColorStop(0.55, `rgba(95, 95, 95, ${randomBetween(0.08, 0.22)})`);
-    grad.addColorStop(1, 'rgba(80, 80, 80, 0)');
+    const rx = randomBetween(5, 16);
+    const ry = randomBetween(4, 12);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(randomBetween(-0.5, 0.5));
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(rx, ry));
+    // Slight highlight at nucleus center
+    grad.addColorStop(0,   `rgba(165, 165, 165, ${randomBetween(0.08, 0.20)})`);
+    grad.addColorStop(0.65, 'rgba(128, 128, 128, 0.04)');
+    grad.addColorStop(1,   'rgba(118, 118, 118, 0)');
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 
-  for (let i = 0; i < 42; i++) {
-    const x = randomBetween(-30, canvas.width + 30);
-    ctx.strokeStyle = `rgba(215, 215, 215, ${randomBetween(0.04, 0.14)})`;
-    ctx.lineWidth = randomBetween(0.8, 3.4);
+  // Longitudinal folds — vessel walls have folds that run along the flow axis
+  for (let i = 0; i < 8; i++) {
+    const x = randomBetween(8, canvas.width - 8);
+    ctx.strokeStyle = `rgba(175, 175, 175, ${randomBetween(0.06, 0.13)})`;
+    ctx.lineWidth = randomBetween(1.5, 4);
     ctx.beginPath();
-    ctx.moveTo(x, randomBetween(-80, 80));
-    for (let y = 0; y <= canvas.height + 80; y += randomBetween(22, 42)) {
-      ctx.lineTo(
-        x + Math.sin(y * randomBetween(0.012, 0.028) + i) * randomBetween(8, 28),
-        y,
-      );
+    ctx.moveTo(x, 0);
+    for (let y = 0; y <= canvas.height; y += 6) {
+      ctx.lineTo(x + Math.sin(y * 0.018 + i * 1.3) * randomBetween(4, 12), y);
     }
     ctx.stroke();
   }
 
-  addFineGrain(ctx, canvas, 24, true);
+  addFineGrain(ctx, canvas, 5, true);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(2, Math.max(2, length / 42));
+  texture.repeat.set(3, Math.max(3, length / 28));
   texture.needsUpdate = true;
   return texture;
 }
-
 
 function drawCapillaryLines(ctx, canvas, count) {
   ctx.save();
@@ -199,29 +201,24 @@ function drawCapillaryLines(ctx, canvas, count) {
   ctx.lineJoin = 'round';
   ctx.globalCompositeOperation = 'screen';
   for (let i = 0; i < count; i++) {
-    const startX = randomBetween(-80, canvas.width + 80);
-    const startY = randomBetween(-120, canvas.height);
+    const startX = randomBetween(-60, canvas.width + 60);
+    const startY = randomBetween(-100, canvas.height);
     const segments = Math.floor(randomBetween(3, 7));
-    const hueShift = Math.floor(randomBetween(-12, 18));
-    ctx.strokeStyle = `rgba(${210 + hueShift}, ${42 + hueShift * 0.25}, ${38}, ${randomBetween(0.08, 0.2)})`;
-    ctx.lineWidth = randomBetween(1.2, 5.8);
+    ctx.strokeStyle = `rgba(220, 100, 140, ${randomBetween(0.07, 0.18)})`;
+    ctx.lineWidth = randomBetween(0.8, 3.5);
     ctx.beginPath();
     ctx.moveTo(startX, startY);
     let x = startX;
     let y = startY;
     for (let s = 0; s < segments; s++) {
-      const nextY = y + randomBetween(90, 190);
-      const nextX = x + randomBetween(-90, 90);
+      const nextY = y + randomBetween(80, 180);
+      const nextX = x + randomBetween(-80, 80);
       ctx.bezierCurveTo(
-        x + randomBetween(-70, 70),
-        y + randomBetween(20, 95),
-        nextX + randomBetween(-70, 70),
-        nextY - randomBetween(20, 95),
-        nextX,
-        nextY,
+        x + randomBetween(-60, 60), y + randomBetween(18, 80),
+        nextX + randomBetween(-60, 60), nextY - randomBetween(18, 80),
+        nextX, nextY,
       );
-      x = nextX;
-      y = nextY;
+      x = nextX; y = nextY;
     }
     ctx.stroke();
   }
@@ -234,13 +231,11 @@ function addFineGrain(ctx, canvas, amount, grayscale = false) {
   for (let i = 0; i < data.length; i += 4) {
     const grain = Math.floor(randomBetween(-amount, amount));
     if (grayscale) {
-      data[i] += grain;
-      data[i + 1] += grain;
-      data[i + 2] += grain;
+      data[i] += grain; data[i + 1] += grain; data[i + 2] += grain;
     } else {
       data[i] += grain;
-      data[i + 1] += Math.floor(grain * 0.45);
-      data[i + 2] += Math.floor(grain * 0.35);
+      data[i + 1] += Math.floor(grain * 0.5);
+      data[i + 2] += Math.floor(grain * 0.6);  // slight pink tint to grain
     }
   }
   ctx.putImageData(image, 0, 0);
@@ -250,7 +245,7 @@ function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
-// ── Blood vessel environment — all batched into InstancedMeshes (5 draw calls) ─
+// ── Blood vessel environment ──────────────────────────────────────────────────
 export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
   const group = new THREE.Group();
   const _m = new THREE.Matrix4();
@@ -259,98 +254,78 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
   const _s = new THREE.Vector3();
   const _e = new THREE.Euler();
 
-  // ── Red blood cells — biconcave discs, InstancedMesh ──
-  const rbcGeo = new THREE.SphereGeometry(1, 6, 4);
+  // ── Red blood cells — bright scarlet biconcave discs ──────────────────────
+  // Research: ~45% hematocrit, densely packed, oxygenated = bright scarlet #CC1828
+  // Shape: biconcave disc, diameter ~7-8µm, thickness ~2µm (ratio ~3.5:1)
+  const rbcGeo = new THREE.SphereGeometry(1, 8, 5);
   const rbcMat = new THREE.MeshStandardMaterial({
-    color:             0xcc2030,
-    emissive:          0x880010,
-    emissiveIntensity: 0.9,
-    roughness:         0.7,
+    color:             0xCC1828,   // bright scarlet (oxygenated)
+    emissive:          0x991018,   // strong red self-illumination
+    emissiveIntensity: 1.1,
+    roughness:         0.65,
     metalness:         0.0,
   });
-  const RBC_COUNT = 80;
+  // Dense packing: 280 cells filling the vessel cross-section
+  const RBC_COUNT = 280;
   const rbcMesh = new THREE.InstancedMesh(rbcGeo, rbcMat, RBC_COUNT);
   for (let i = 0; i < RBC_COUNT; i++) {
     const t = i / RBC_COUNT;
-    const z = -6 - t * (length - 12) + (Math.random() - 0.5) * (length / RBC_COUNT) * 4;
-    const r = 0.5 + Math.random() * 2.8;
+    const z = -5 - t * (length - 10) + (Math.random() - 0.5) * (length / RBC_COUNT) * 5;
+    // Fill entire cross-section — cells appear near walls too
+    const r = Math.random() * (TUNNEL_RADIUS - 0.4);
     const ang = Math.random() * Math.PI * 2;
     _p.set(Math.cos(ang) * r, Math.sin(ang) * r, z);
     _e.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
     _q.setFromEuler(_e);
-    const sz = 0.17 + Math.random() * 0.15;
-    _s.set(sz, sz * 0.26, sz);
+    const sz = 0.22 + Math.random() * 0.18;  // diameter 0.22–0.40
+    _s.set(sz, sz * 0.28, sz);               // biconcave: thickness ~28% of diameter
     _m.compose(_p, _q, _s);
     rbcMesh.setMatrixAt(i, _m);
   }
   rbcMesh.instanceMatrix.needsUpdate = true;
   group.add(rbcMesh);
 
-  // ── Leukocytes (white blood cells) — InstancedMesh ──
-  const wbcGeo = new THREE.IcosahedronGeometry(0.45, 0);
+  // ── Leukocytes — ivory cream, large, bumpy, rare (~1 per 700 RBCs) ────────
+  // Research: 2× RBC diameter, pale ivory #F0E8D8, lobulated surface
+  const wbcGeo = new THREE.IcosahedronGeometry(0.5, 1);
   const wbcMat = new THREE.MeshStandardMaterial({
-    color:             0xf0dfc0,
-    emissive:          0x401800,
-    emissiveIntensity: 0.2,
-    roughness:         0.92,
+    color:             0xF0E8D8,   // ivory cream
+    emissive:          0x503020,
+    emissiveIntensity: 0.25,
+    roughness:         0.88,       // bumpy/matte surface
+    metalness:         0.0,
   });
-  const WBC_COUNT = 6;
+  const WBC_COUNT = 5;
   const wbcMesh = new THREE.InstancedMesh(wbcGeo, wbcMat, WBC_COUNT);
   for (let i = 0; i < WBC_COUNT; i++) {
-    const z = -20 - (i / WBC_COUNT) * (length - 40);
-    const r = 0.4 + Math.random() * 2.2;
+    const z = -25 - (i / WBC_COUNT) * (length - 50);
+    const r = 0.3 + Math.random() * 2.5;
     const ang = Math.random() * Math.PI * 2;
     _p.set(Math.cos(ang) * r, Math.sin(ang) * r, z);
     _e.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
     _q.setFromEuler(_e);
-    const sc = 0.6 + Math.random() * 0.5;
-    _s.set(sc, sc * (0.7 + Math.random() * 0.5), sc);
+    const sc = 0.7 + Math.random() * 0.5;
+    _s.set(sc, sc * (0.8 + Math.random() * 0.4), sc);
     _m.compose(_p, _q, _s);
     wbcMesh.setMatrixAt(i, _m);
   }
   wbcMesh.instanceMatrix.needsUpdate = true;
   group.add(wbcMesh);
 
-  // ── Fibrin strands — InstancedMesh ──
-  const strandGeo = new THREE.CylinderGeometry(0.025, 0.018, 1, 4);
-  const strandMat = new THREE.MeshStandardMaterial({
-    color:    0xcc3311,
-    roughness: 0.85,
-  });
-  const STRAND_COUNT = 10;
-  const strandMesh = new THREE.InstancedMesh(strandGeo, strandMat, STRAND_COUNT);
-  for (let i = 0; i < STRAND_COUNT; i++) {
-    const z = -12 - (i / STRAND_COUNT) * (length - 24);
-    const r = 2.0 + Math.random() * 1.6;
-    const ang = Math.random() * Math.PI * 2;
-    _p.set(Math.cos(ang) * r, Math.sin(ang) * r, z);
-    _e.set(
-      (Math.random() - 0.5) * Math.PI,
-      Math.random() * Math.PI,
-      (Math.random() - 0.5) * Math.PI,
-    );
-    _q.setFromEuler(_e);
-    const sLen = 1.8 + Math.random() * 3.5;
-    _s.set(1, sLen, 1);
-    _m.compose(_p, _q, _s);
-    strandMesh.setMatrixAt(i, _m);
-  }
-  strandMesh.instanceMatrix.needsUpdate = true;
-  group.add(strandMesh);
-
-  // ── Platelets — InstancedMesh ──
-  const platGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.03, 5);
+  // ── Platelets — tiny pale disc fragments, barely visible ──────────────────
+  // Research: 2–4µm (< half RBC size), pale #F5DDD0, disc-shaped
+  const platGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.025, 5);
   const platMat = new THREE.MeshStandardMaterial({
-    color:             0xffccbb,
-    emissive:          0x661100,
-    emissiveIntensity: 0.6,
-    roughness:         0.6,
+    color:             0xF5DDD0,   // pale blush
+    emissive:          0x804030,
+    emissiveIntensity: 0.4,
+    roughness:         0.7,
   });
-  const PLAT_COUNT = 18;
+  const PLAT_COUNT = 30;
   const platMesh = new THREE.InstancedMesh(platGeo, platMat, PLAT_COUNT);
   for (let i = 0; i < PLAT_COUNT; i++) {
-    const z = -8 - (i / PLAT_COUNT) * (length - 16) + (Math.random() - 0.5) * 3;
-    const r = 1.0 + Math.random() * 2.5;
+    const z = -8 - (i / PLAT_COUNT) * (length - 16) + (Math.random() - 0.5) * 4;
+    const r = 0.5 + Math.random() * (TUNNEL_RADIUS - 0.8);
     const ang = Math.random() * Math.PI * 2;
     _p.set(Math.cos(ang) * r, Math.sin(ang) * r, z);
     _e.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
@@ -367,19 +342,22 @@ export function buildBloodEnvironment(scene, length = TUNNEL_LENGTH) {
 }
 
 export function buildLighting(scene) {
-  scene.add(new THREE.AmbientLight(0xff2233, 0.45));  // brighter ambient
+  // Strong warm scarlet ambient — blood interior is vivid red, not a dark cave
+  scene.add(new THREE.AmbientLight(0xff3344, 1.1));
 
-  const dir = new THREE.DirectionalLight(0xff8855, 0.7);
-  dir.position.set(5, 5, 5);
+  // Warm directional fill to bring out the pink wall tones
+  const dir = new THREE.DirectionalLight(0xffaacc, 0.6);
+  dir.position.set(3, 4, 5);
   scene.add(dir);
 
+  // Pulsing point lights along tunnel — brighter and warmer than before
   const pulseGroup = [];
-  for (let i = 0; i < 8; i++) {
-    const light = new THREE.PointLight(0xff3344, 2.5, 22);
+  for (let i = 0; i < 10; i++) {
+    const light = new THREE.PointLight(0xff2244, 3.5, 28);
     light.position.set(
       (Math.random() - 0.5) * 2,
       (Math.random() - 0.5) * 2,
-      -10 - i * (TUNNEL_LENGTH / 8)
+      -8 - i * (TUNNEL_LENGTH / 10),
     );
     scene.add(light);
     pulseGroup.push(light);
