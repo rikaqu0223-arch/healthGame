@@ -4,12 +4,21 @@ const torpGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.7, 8);
 torpGeo.rotateX(Math.PI / 2);
 
 const torpMat = new THREE.MeshStandardMaterial({
-  color: 0xffffff,
-  emissive: 0x00ffee,
   emissiveIntensity: 3,
   roughness: 0,
   metalness: 0.4,
 });
+
+// Color and length per level — matches submarine cosmetics
+const TORPEDO_LEVELS = [
+  { color: 0x00ffee, length: 1.0 },  // 1 cyan
+  { color: 0x00ddff, length: 1.8 },  // 2 bright cyan
+  { color: 0x22ff88, length: 2.8 },  // 3 green
+  { color: 0xffcc00, length: 4.0 },  // 4 gold
+  { color: 0xff6600, length: 5.5 },  // 5 orange
+  { color: 0xdd44ff, length: 7.5 },  // 6 purple
+  { color: 0xffffff, length: 10.0 }, // 7+ white laser
+];
 
 const TORPEDO_SPEED = 40;
 const TORPEDO_RANGE = 100;
@@ -33,13 +42,18 @@ export function fireTorpedo(weapons, scene, px, py, pz, now, cfg = {}) {
 
   const speed   = cfg.torpedoSpeed ?? TORPEDO_SPEED;
   const offsets = cfg.spreadShot ? [-0.5, 0, 0.5] : [0];
-  const scale   = 1 + ((cfg.level ?? 1) - 1) * 0.15; // +15% per level
+  const level   = cfg.level ?? 1;
+  const lvlCfg  = TORPEDO_LEVELS[Math.min(level - 1, TORPEDO_LEVELS.length - 1)];
+  const radScale = 1 + (level - 1) * 0.12; // gently thicker per level
 
   for (const xOff of offsets) {
-    const mesh = new THREE.Mesh(torpGeo, torpMat.clone());
+    const mat = torpMat.clone();
+    mat.color.setHex(lvlCfg.color);
+    mat.emissive.setHex(lvlCfg.color);
+    const mesh = new THREE.Mesh(torpGeo, mat);
     mesh.position.set(px + xOff, py, pz - 1.2);
-    mesh.scale.setScalar(scale);
-    const light = new THREE.PointLight(0x00ffee, 4, 5);
+    mesh.scale.set(radScale, radScale, lvlCfg.length);
+    const light = new THREE.PointLight(lvlCfg.color, 4, 5);
     mesh.add(light);
     mesh.userData = { traveled: 0, speed };
     scene.add(mesh);
