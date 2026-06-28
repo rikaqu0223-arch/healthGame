@@ -1,15 +1,37 @@
 import * as THREE from 'three';
-import { TUNNEL_RADIUS } from './scene.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const SPEED = 14;         // units / second forward
 const STRAFE = 6;         // lateral / vertical speed
 const MAX_OFFSET = 2.8;   // max radial distance from center
 const BANK_ANGLE = 0.35;  // roll when strafing
+const SUBMARINE_MODEL_URL = '/models/low_poly_submarine.glb';
+const TARGET_MODEL_LENGTH = 1.75;
 
 export function createSubmarine(scene) {
   const group = new THREE.Group();
+  const fallback = createFallbackSubmarine();
+  const prop = fallback.prop;
 
-  // Body — elongated ellipsoid via scaled sphere
+  group.add(fallback.group);
+  group.add(createSubmarineLight());
+  scene.add(group);
+
+  const player = {
+    group,
+    prop,
+    modelLoaded: false,
+    modelLoadFailed: false,
+  };
+
+  loadSubmarineModel(group, fallback.group, player);
+  return player;
+}
+
+function createFallbackSubmarine() {
+  const group = new THREE.Group();
+
+  // Body: elongated ellipsoid via scaled sphere.
   const bodyGeo = new THREE.SphereGeometry(0.35, 16, 10);
   bodyGeo.scale(2.2, 1, 1);
   const bodyMat = new THREE.MeshStandardMaterial({
@@ -43,12 +65,65 @@ export function createSubmarine(scene) {
   lamp.position.x = 0.78;
   group.add(lamp);
 
-  // Point light attached to sub
-  const light = new THREE.PointLight(0x44aaff, 2, 8);
-  group.add(light);
-
-  scene.add(group);
   return { group, prop };
+}
+
+function createSubmarineLight() {
+  const light = new THREE.PointLight(0x44aaff, 2, 8);
+  light.position.set(0, 0, -0.4);
+  return light;
+}
+
+function loadSubmarineModel(group, fallback, player) {
+  const loader = new GLTFLoader();
+
+  loader.load(
+    SUBMARINE_MODEL_URL,
+    (gltf) => {
+      const model = gltf.scene;
+      prepareModel(model);
+      fallback.visible = false;
+      group.add(model);
+      player.model = model;
+      player.modelLoaded = true;
+    },
+    undefined,
+    (error) => {
+      console.warn(`Could not load ${SUBMARINE_MODEL_URL}`, error);
+      player.modelLoadFailed = true;
+    },
+  );
+}
+
+function prepareModel(model) {
+  const box = new THREE.Box3().setFromObject(model);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const longestAxis = Math.max(size.x, size.y, size.z);
+  const scale = longestAxis > 0 ? TARGET_MODEL_LENGTH / longestAxis : 1;
+
+  orientModelByLongestAxis(model, size);
+  model.scale.setScalar(scale);
+  model.position.copy(center).multiplyScalar(scale).applyEuler(model.rotation).multiplyScalar(-1);
+
+  model.traverse((child) => {
+    if (!child.isMesh) return;
+    child.frustumCulled = false;
+    if (child.material) {
+      child.material.flatShading = true;
+      child.material.needsUpdate = true;
+    }
+  });
+}
+
+function orientModelByLongestAxis(model, size) {
+  if (size.x >= size.y && size.x >= size.z) {
+    model.rotation.y = Math.PI / 2;
+  } else if (size.y >= size.x && size.y >= size.z) {
+    model.rotation.x = Math.PI / 2;
+  } else {
+    model.rotation.y = Math.PI;
+  }
 }
 
 export function createInputState() {
@@ -82,8 +157,8 @@ export function updatePlayer(player, keys, delta, state) {
   group.rotation.z = THREE.MathUtils.lerp(group.rotation.z, -dx * BANK_ANGLE, 0.15);
   group.rotation.y = THREE.MathUtils.lerp(group.rotation.y,  dx * 0.1, 0.1);
 
-  // Spin propeller
-  prop.rotation.x += 8 * delta;
+  // Spin the fallback propeller while the GLB is still loading.
+  if (prop.visible) prop.rotation.x += 8 * delta;
 }
 
 export function updateCamera(camera, state, delta) {
