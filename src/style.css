@@ -456,6 +456,66 @@ canvas#c {
   100% { background: #ff9900; opacity: 0; }
 }
 
+/* ── Level & XP HUD ── */
+#level-hud {
+  position: fixed;
+  bottom: 96px;
+  left: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#level-display {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #44ffee;
+  text-shadow: 0 0 8px #44ffee;
+}
+
+#xp-bar-wrap {
+  width: 100px;
+  height: 4px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(68,255,238,0.3);
+}
+
+#xp-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #44ffee, #00ffaa);
+  border-radius: 2px;
+  transition: width 0.25s ease-out;
+}
+
+/* ── Level-up banner ── */
+#levelup-banner {
+  position: fixed;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  letter-spacing: 10px;
+  color: #44ffee;
+  text-shadow: 0 0 30px #44ffee, 0 0 60px #00ffaa88;
+  z-index: 35;
+  pointer-events: none;
+  animation: levelup-rise 2.2s ease-out forwards;
+}
+
+#levelup-banner.hidden { display: none; }
+
+@keyframes levelup-rise {
+  0%   { opacity: 0; transform: translate(-50%, -40%) scale(0.6); }
+  18%  { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+  60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+  100% { opacity: 0; transform: translate(-50%, -65%) scale(1.0); }
+}
+
 /* ── Fire button ── */
 #fire-btn {
   position: fixed;

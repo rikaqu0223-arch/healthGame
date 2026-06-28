@@ -33,10 +33,12 @@ export function fireTorpedo(weapons, scene, px, py, pz, now, cfg = {}) {
 
   const speed   = cfg.torpedoSpeed ?? TORPEDO_SPEED;
   const offsets = cfg.spreadShot ? [-0.5, 0, 0.5] : [0];
+  const scale   = 1 + ((cfg.level ?? 1) - 1) * 0.15; // +15% per level
 
   for (const xOff of offsets) {
     const mesh = new THREE.Mesh(torpGeo, torpMat.clone());
     mesh.position.set(px + xOff, py, pz - 1.2);
+    mesh.scale.setScalar(scale);
     const light = new THREE.PointLight(0x00ffee, 4, 5);
     mesh.add(light);
     mesh.userData = { traveled: 0, speed };
@@ -76,7 +78,7 @@ export function updateWeapons(weapons, objects, scene, delta, onDestroy) {
       obj.userData.hit = true;
       obj.visible = false;
       hit = true;
-      if (onDestroy) onDestroy();
+      if (onDestroy) onDestroy(obj);
       break;
     }
 

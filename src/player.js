@@ -126,6 +126,32 @@ function orientModelByLongestAxis(model, size) {
   }
 }
 
+// Cosmetic style per level (clamped at last entry for levels beyond)
+const SUB_COSMETICS = [
+  { hull: 0x00aadd, emissive: 0x003355, intensity: 0.5,  light: 0x44aaff },  // 1 blue
+  { hull: 0x00ddff, emissive: 0x004466, intensity: 0.9,  light: 0x00ddff },  // 2 cyan
+  { hull: 0x22ff88, emissive: 0x004422, intensity: 1.1,  light: 0x22ff88 },  // 3 green
+  { hull: 0xffcc00, emissive: 0x443300, intensity: 1.3,  light: 0xffcc00 },  // 4 gold
+  { hull: 0xff6600, emissive: 0x441100, intensity: 1.5,  light: 0xff8800 },  // 5 orange
+  { hull: 0xdd44ff, emissive: 0x440066, intensity: 1.7,  light: 0xdd44ff },  // 6 purple
+  { hull: 0xffffff, emissive: 0x336688, intensity: 2.2,  light: 0xffffff },  // 7+ white
+];
+
+export function applySubmarineLevel(player, level) {
+  const style = SUB_COSMETICS[Math.min(level - 1, SUB_COSMETICS.length - 1)];
+  player.group.traverse(child => {
+    if (child.isMesh && child.material) {
+      child.material.color.setHex(style.hull);
+      child.material.emissive.setHex(style.emissive);
+      child.material.emissiveIntensity = style.intensity;
+      child.material.needsUpdate = true;
+    }
+    if (child.isPointLight) {
+      child.color.setHex(style.light);
+    }
+  });
+}
+
 export function createInputState() {
   const keys = {};
   window.addEventListener('keydown', e => { keys[e.code] = true; });

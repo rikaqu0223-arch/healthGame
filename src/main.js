@@ -1,13 +1,14 @@
 import './style.css';
 import * as THREE from 'three';
 import { createRenderer, createScene, createCamera, buildTunnel, buildLighting, buildBloodEnvironment, onResize } from './scene.js';
-import { createSubmarine, createInputState, updatePlayer, updateCamera } from './player.js';
+import { createSubmarine, createInputState, updatePlayer, updateCamera, applySubmarineLevel } from './player.js';
 import { buildLevel, updateObjects, checkCollisions, clearObstaclesAhead, clearObstaclesAround } from './objects.js';
 import { loadBroccoliModel } from './broccoli.js';
 import { loadFriesModel } from './fries.js';
 import { loadWBCModel } from './wbc.js';
 import { createSonar, fireSonar, updateSonar } from './sonar.js';
-import { updateHUD, showEnd, flash, showBossHUD, updateBossBar, hideBossHUD, updateRunHUD } from './hud.js';
+import { updateHUD, showEnd, flash, showBossHUD, updateBossBar, hideBossHUD, updateRunHUD, updateLevelHUD, showLevelUp } from './hud.js';
+import { createXPState, resetXP, addXP, XP_VALUES } from './xp.js';
 import { createWeaponSystem, resetWeapons, fireTorpedo, updateWeapons } from './weapons.js';
 import { createBoss, resetBoss, updateBoss, getBossActivateZ, getBossVariant } from './boss.js';
 import { getUpgradeChoices } from './upgrades.js';
@@ -22,6 +23,7 @@ const camera   = createCamera();
 const pulseLights = buildLighting(scene);
 let tunnelMesh    = null;
 let bloodEnv      = null;
+const xpState     = createXPState();
 
 const player  = createSubmarine(scene);
 const keys    = createInputState();
@@ -115,6 +117,8 @@ document.getElementById('congrats-play-again').addEventListener('click', () => {
   runConfig.maxEnergy = 100; runConfig.torpedoSpeed = 40;
   runConfig.torpedoDamage = 1; runConfig.spreadShot = false;
   runConfig.shieldHits = 0; runConfig.energyRegen = 0;
+  resetXP(xpState);
+  applySubmarineLevel(player, 1);
   init();
   state.running = true;
   clock.start();
@@ -171,6 +175,8 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   runConfig.spreadShot   = false;
   runConfig.shieldHits   = 0;
   runConfig.energyRegen  = 0;
+  resetXP(xpState);
+  applySubmarineLevel(player, 1);
   init();
   state.running = true;
   clock.start();
@@ -179,18 +185,19 @@ document.getElementById('restart-btn').addEventListener('click', () => {
 document.getElementById('sonar-btn').addEventListener('click', () => fireSonar(sonar));
 document.getElementById('fire-btn').addEventListener('click', () => {
   if (state.running && !state.over)
-    fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime, runConfig);
+    fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime, { ...runConfig, level: xpState.level });
 });
 
 window.addEventListener('keydown', e => {
   if (e.code === 'Space') { e.preventDefault(); fireSonar(sonar); }
   if (e.code === 'KeyF' && state.running && !state.over)
-    fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime, runConfig);
+    fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime, { ...runConfig, level: xpState.level });
   if (e.code === 'KeyR' && state.over) {
     runConfig.run = 1; runConfig.tunnelLength = 200;
     runConfig.maxEnergy = 100; runConfig.torpedoSpeed = 40;
     runConfig.torpedoDamage = 1; runConfig.spreadShot = false;
     runConfig.shieldHits = 0; runConfig.energyRegen = 0;
+    resetXP(xpState); applySubmarineLevel(player, 1);
     init(); state.running = true; clock.start();
   }
 });
@@ -198,7 +205,7 @@ window.addEventListener('keydown', e => {
 window.addEventListener('click', e => {
   if (!state.running || state.over) return;
   if (e.target.closest('button, .upgrade-card')) return;
-  fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime, runConfig);
+  fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime, { ...runConfig, level: xpState.level });
 });
 
 window.addEventListener('resize', () => onResize(renderer, camera));
@@ -250,22 +257,35 @@ renderer.setAnimationLoop(() => {
       }
     }
 
-    updateWeapons(weapons, objects, scene, delta, () => flash('hit'));
+    updateWeapons(weapons, objects, scene, delta, (obj) => {
+      flash('hit');
+      const xp = XP_VALUES[obj?.userData?.type] ?? 20;
+      if (addXP(xpState, xp)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
+      updateLevelHUD(xpState);
+    });
     checkCollisions(
       objects,
       playerPos,
-      (_crystal) => { state.score += 10; },
+      (crystal) => {
+        state.score += 10;
+        if (addXP(xpState, XP_VALUES[crystal.userData.type] ?? 5)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
+        updateLevelHUD(xpState);
+      },
       (_block)   => { takeDamage(15); },
       (_orb)     => { state.energy = Math.min(runConfig.maxEnergy, state.energy + 25); flash('energy'); },
-      (_broc)    => {
+      (broc)    => {
         const cleared = clearObstaclesAhead(objects, state.z, 40);
         state.score += 50 + cleared * 5;
         flash('broccoli');
+        if (addXP(xpState, XP_VALUES.broccoli)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
+        updateLevelHUD(xpState);
       },
-      (_fries)   => {
+      (fries)   => {
         const cleared = clearObstaclesAround(objects, playerPos, 25);
         state.score += 30 + cleared * 5;
         flash('fries');
+        if (addXP(xpState, XP_VALUES.fries)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
+        updateLevelHUD(xpState);
       },
     );
 

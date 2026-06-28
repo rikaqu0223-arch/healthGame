@@ -1,3 +1,5 @@
+import { xpProgress } from './xp.js';
+
 const scoreEl   = document.getElementById('score');
 const timerEl   = document.getElementById('timer');
 const energyEl  = document.getElementById('energy-bar');
@@ -48,6 +50,22 @@ export function updateHUD(state) {
   } else {
     energyEl.style.background = `linear-gradient(90deg, #ff4466, #ff8844)`;
   }
+}
+
+export function updateLevelHUD(xpState) {
+  document.getElementById('level-display').textContent = `LVL ${xpState.level}`;
+  document.getElementById('xp-bar').style.width = `${xpProgress(xpState) * 100}%`;
+}
+
+export function showLevelUp(level) {
+  const banner = document.getElementById('levelup-banner');
+  banner.textContent = `LEVEL ${level}`;
+  banner.classList.remove('hidden');
+  void banner.offsetWidth;
+  banner.style.animation = 'none';
+  void banner.offsetWidth;
+  banner.style.animation = '';
+  setTimeout(() => banner.classList.add('hidden'), 2200);
 }
 
 export function showEnd(state) {
