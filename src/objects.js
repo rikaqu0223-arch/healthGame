@@ -69,7 +69,7 @@ function randOffset(max = 2.2) {
   return (Math.random() - 0.5) * 2 * max;
 }
 
-export function spawnDrifter(scene, z) {
+export function spawnDrifter(scene, z, speedMult = 1) {
   const mesh = new THREE.Mesh(drifterGeo, drifterMat.clone());
   const baseX = randOffset(1.8);
   const baseY = randOffset(1.8);
@@ -80,8 +80,8 @@ export function spawnDrifter(scene, z) {
     baseX, baseY,
     phaseX: Math.random() * Math.PI * 2,
     phaseY: Math.random() * Math.PI * 2,
-    speedX: 0.7 + Math.random() * 0.8,
-    speedY: 0.6 + Math.random() * 0.9,
+    speedX: (0.7 + Math.random() * 0.8) * speedMult,
+    speedY: (0.6 + Math.random() * 0.9) * speedMult,
     ampX: 1.2 + Math.random() * 0.8,
     ampY: 0.9 + Math.random() * 0.7,
   };
@@ -165,25 +165,26 @@ export function spawnTurbulenceRing(scene, z) {
 
 // ── Level layout: pre-place objects along the tunnel ────────────────────────
 
-export function buildLevel(scene, tunnelLength = 200) {
-  const objects = [];
-  const step = 6;
+export function buildLevel(scene, tunnelLength = 200, run = 1) {
+  const objects   = [];
+  const step      = Math.max(4, 6 - Math.floor((run - 1) * 0.4));
+  const speedMult = 1 + (run - 1) * 0.2;
 
   for (let z = -10; z > -tunnelLength + 10; z -= step) {
     const roll = Math.random();
-    if (roll < 0.32) {
+    if (roll < 0.30) {
       objects.push(spawnCrystal(scene, z));
     } else if (roll < 0.50) {
       objects.push(spawnBlock(scene, z));
     } else if (roll < 0.60) {
       objects.push(spawnTurbulenceRing(scene, z));
-    } else if (roll < 0.72) {
+    } else if (roll < 0.70) {
       for (let i = 0; i < 3; i++) objects.push(spawnCrystal(scene, z - i * 1.2));
-    } else if (roll < 0.78) {
-      objects.push(spawnDrifter(scene, z));
-    } else if (roll < 0.86) {
+    } else if (roll < 0.84) {
+      objects.push(spawnDrifter(scene, z, speedMult));
+    } else if (roll < 0.92) {
       objects.push(spawnPinball(scene, z));
-    } else if (roll < 0.93) {
+    } else if (roll < 0.96) {
       objects.push(spawnEnergyOrb(scene, z));
     } else {
       objects.push(...spawnOrbitCluster(scene, z));

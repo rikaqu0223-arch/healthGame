@@ -1,10 +1,8 @@
 import * as THREE from 'three';
-import { TUNNEL_LENGTH } from './scene.js';
 
-export const BOSS_Z        = -(TUNNEL_LENGTH - 12);  // -188
-export const BOSS_ACTIVATE = -(TUNNEL_LENGTH - 35);  // -165  player z threshold
+export function getBossZ(tunnelLength)        { return -(tunnelLength - 12); }
+export function getBossActivateZ(tunnelLength) { return -(tunnelLength - 35); }
 
-const BOSS_HP          = 10;
 const FIRE_INTERVAL    = 1.8;
 const PROJ_SPEED       = 12;
 const PROJ_RANGE       = 70;
@@ -42,7 +40,7 @@ const projMat = new THREE.MeshStandardMaterial({
 const projGeo = new THREE.SphereGeometry(0.25, 8, 8);
 
 // ── Build boss mesh ───────────────────────────────────────────────────────────
-export function createBoss(scene) {
+export function createBoss(scene, tunnelLength = 200, bossHp = 10, fireInterval = FIRE_INTERVAL) {
   const group = new THREE.Group();
 
   // Core body
@@ -77,14 +75,15 @@ export function createBoss(scene) {
   eyeLight.position.set(0, 0, 2);
   group.add(eyeLight);
 
-  group.position.set(0, 0, BOSS_Z);
+  group.position.set(0, 0, getBossZ(tunnelLength));
   group.visible = false;
   scene.add(group);
 
   return {
     group, body, spikeRing, spikes, light, eyeLight,
-    hp: BOSS_HP,
-    maxHp: BOSS_HP,
+    hp: bossHp,
+    maxHp: bossHp,
+    fireInterval,
     active: false,
     defeated: false,
     hitFlash: 0,
@@ -94,7 +93,7 @@ export function createBoss(scene) {
 }
 
 // ── Per-frame update ──────────────────────────────────────────────────────────
-export function updateBoss(boss, state, delta, time, torpedoes, scene, onPlayerHit, onBossHit) {
+export function updateBoss(boss, state, delta, time, torpedoes, scene, onPlayerHit, onBossHit, torpedoDamage = 1) {
   if (!boss.active || boss.defeated) return;
 
   // Movement: figure-8 drift
@@ -124,7 +123,7 @@ export function updateBoss(boss, state, delta, time, torpedoes, scene, onPlayerH
 
   // Fire projectile at player
   boss.lastFired += delta;
-  if (boss.lastFired >= FIRE_INTERVAL) {
+  if (boss.lastFired >= boss.fireInterval) {
     boss.lastFired = 0;
     spawnBossProjectile(boss, scene, state.px, state.py, state.z);
   }
@@ -150,15 +149,20 @@ export function updateBoss(boss, state, delta, time, torpedoes, scene, onPlayerH
     boss.projectiles.splice(boss.projectiles.indexOf(p), 1);
   }
 
-  // Check torpedo hits on boss
+  // Check torpedo hits on boss (swept Z check to prevent tunneling)
   const deadTorps = [];
   for (const torp of torpedoes) {
+    const prevZ = torp.userData.prevZ ?? torp.position.z;
+    torp.userData.prevZ = torp.position.z;
+
     const dx = boss.group.position.x - torp.position.x;
     const dy = boss.group.position.y - torp.position.y;
-    const dz = boss.group.position.z - torp.position.z;
-    if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 2.4) {
+    const bz = boss.group.position.z;
+    const inXY  = dx * dx + dy * dy < 2.4 * 2.4;
+    const inZ   = bz <= prevZ && bz >= torp.position.z;
+    if (inXY && inZ) {
       deadTorps.push(torp);
-      boss.hp  = Math.max(0, boss.hp - 1);
+      boss.hp  = Math.max(0, boss.hp - torpedoDamage);
       boss.hitFlash = 0.12;
       onBossHit(boss.hp);
       if (boss.hp === 0) {
@@ -174,16 +178,18 @@ export function updateBoss(boss, state, delta, time, torpedoes, scene, onPlayerH
   }
 }
 
-// ── Reset (called on restart) ─────────────────────────────────────────────────
-export function resetBoss(boss, scene) {
+// ── Reset (called on restart / new run) ──────────────────────────────────────
+export function resetBoss(boss, scene, tunnelLength = 200, bossHp = 10, fireInterval = FIRE_INTERVAL) {
   clearBossProjectiles(boss, scene);
-  boss.hp       = boss.maxHp;
-  boss.active   = false;
-  boss.defeated = false;
-  boss.hitFlash = 0;
-  boss.lastFired = 0;
+  boss.hp           = bossHp;
+  boss.maxHp        = bossHp;
+  boss.fireInterval = fireInterval;
+  boss.active       = false;
+  boss.defeated     = false;
+  boss.hitFlash     = 0;
+  boss.lastFired    = 0;
   boss.group.visible = false;
-  boss.group.position.set(0, 0, BOSS_Z);
+  boss.group.position.set(0, 0, getBossZ(tunnelLength));
   boss.body.material.color.set(0x660088);
   boss.body.material.emissiveIntensity = 1.4;
 }

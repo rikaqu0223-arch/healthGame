@@ -73,6 +73,109 @@ canvas#c {
   box-shadow: 0 0 20px #00ccff88;
 }
 
+/* ── HUD sub-row (run + shield) ── */
+#hud-sub {
+  position: fixed;
+  top: 44px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 24px;
+  pointer-events: none;
+  z-index: 10;
+  font-size: 11px;
+  letter-spacing: 2px;
+  opacity: 0.7;
+}
+
+#shield-display {
+  color: #44ffee;
+  text-shadow: 0 0 6px #44ffee;
+  animation: shield-pulse 1.5s ease-in-out infinite;
+}
+
+#shield-display.hidden { display: none; }
+
+@keyframes shield-pulse {
+  0%, 100% { opacity: 0.7; }
+  50%       { opacity: 1; }
+}
+
+/* ── Upgrade overlay ── */
+#upgrade-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.85);
+  text-align: center;
+  padding: 24px;
+}
+
+#upgrade-overlay.hidden { display: none; }
+
+#upgrade-overlay h2 {
+  font-size: clamp(1.6rem, 5vw, 3rem);
+  letter-spacing: 6px;
+  color: #ff44ff;
+  text-shadow: 0 0 24px #ff44ff, 0 0 48px #aa00ff55;
+}
+
+#upgrade-sub {
+  font-size: 13px;
+  opacity: 0.65;
+  letter-spacing: 1px;
+}
+
+.upgrade-prompt {
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: #aaa;
+  margin-top: 4px;
+}
+
+#upgrade-cards {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.upgrade-card {
+  width: 180px;
+  padding: 20px 16px;
+  border: 2px solid #aa00ff;
+  border-radius: 8px;
+  background: rgba(100, 0, 180, 0.15);
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.upgrade-card:hover {
+  background: rgba(150, 0, 255, 0.3);
+  box-shadow: 0 0 24px #aa00ff88;
+  transform: translateY(-3px);
+}
+
+.upg-name {
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: #ff44ff;
+  margin-bottom: 10px;
+}
+
+.upg-desc {
+  font-size: 12px;
+  opacity: 0.75;
+  line-height: 1.5;
+}
+
 /* ── Boss HUD ── */
 #boss-hud {
   position: fixed;

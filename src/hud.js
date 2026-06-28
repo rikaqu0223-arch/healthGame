@@ -18,6 +18,17 @@ export function hideBossHUD() {
   bossHudEl.classList.add('hidden');
 }
 
+export function updateRunHUD(run, shieldHits) {
+  document.getElementById('run-num').textContent = run;
+  const shieldEl = document.getElementById('shield-display');
+  if (shieldHits > 0) {
+    shieldEl.textContent = `⬡ SHIELD ×${shieldHits}`;
+    shieldEl.classList.remove('hidden');
+  } else {
+    shieldEl.classList.add('hidden');
+  }
+}
+
 export function flash(type) {
   flashEl.className = '';
   // Force reflow so removing+re-adding the class restarts the animation

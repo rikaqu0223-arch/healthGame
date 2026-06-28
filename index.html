@@ -14,6 +14,10 @@
       </div>
       <div id="timer-display">TIME: <span id="timer">90</span>s</div>
     </div>
+    <div id="hud-sub">
+      <span id="run-display">RUN <span id="run-num">1</span></span>
+      <span id="shield-display" class="hidden">⬡ SHIELD</span>
+    </div>
 
     <!-- Boss HUD -->
     <div id="boss-hud" class="hidden">
@@ -43,6 +47,13 @@
       <h1 id="end-title">FLOW RESTORED</h1>
       <p id="end-stats"></p>
       <button id="restart-btn">PLAY AGAIN</button>
+    </div>
+
+    <div id="upgrade-overlay" class="hidden">
+      <h2>PATHOGEN ELIMINATED</h2>
+      <p id="upgrade-sub">Run <span id="upgrade-run-num">1</span> complete &mdash; tunnel extends &mdash; boss grows stronger</p>
+      <p class="upgrade-prompt">CHOOSE AN UPGRADE</p>
+      <div id="upgrade-cards"></div>
     </div>
 
     <div id="flash"></div>

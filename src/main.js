@@ -1,12 +1,13 @@
 import './style.css';
 import * as THREE from 'three';
-import { createRenderer, createScene, createCamera, buildTunnel, buildLighting, onResize, TUNNEL_LENGTH } from './scene.js';
+import { createRenderer, createScene, createCamera, buildTunnel, buildLighting, onResize } from './scene.js';
 import { createSubmarine, createInputState, updatePlayer, updateCamera } from './player.js';
 import { buildLevel, updateObjects, checkCollisions } from './objects.js';
 import { createSonar, fireSonar, updateSonar } from './sonar.js';
-import { updateHUD, showEnd, flash, showBossHUD, updateBossBar, hideBossHUD } from './hud.js';
-import { createWeaponSystem, fireTorpedo, updateWeapons } from './weapons.js';
-import { createBoss, resetBoss, updateBoss, BOSS_ACTIVATE } from './boss.js';
+import { updateHUD, showEnd, flash, showBossHUD, updateBossBar, hideBossHUD, updateRunHUD } from './hud.js';
+import { createWeaponSystem, resetWeapons, fireTorpedo, updateWeapons } from './weapons.js';
+import { createBoss, resetBoss, updateBoss, getBossActivateZ, getBossZ } from './boss.js';
+import { getUpgradeChoices } from './upgrades.js';
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 const canvas   = document.getElementById('c');
@@ -14,8 +15,8 @@ const renderer = createRenderer(canvas);
 const scene    = createScene();
 const camera   = createCamera();
 
-buildTunnel(scene);
 const pulseLights = buildLighting(scene);
+let tunnelMesh    = null;
 
 const player  = createSubmarine(scene);
 const keys    = createInputState();
@@ -23,11 +24,30 @@ const sonar   = createSonar(scene);
 const weapons = createWeaponSystem();
 const boss    = createBoss(scene);
 
+// ── Persistent run config (survives restarts) ─────────────────────────────────
+const runConfig = {
+  run:          1,
+  tunnelLength: 200,
+  maxEnergy:    100,
+  torpedoSpeed: 40,
+  torpedoDamage: 1,
+  spreadShot:   false,
+  shieldHits:   0,
+  energyRegen:  0,
+};
+
 let objects = [];
 let state   = makeState();
 const clock = new THREE.Clock(false);
 
-// ── Game state factory ────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function bossDifficulty() {
+  return {
+    hp:           10 + (runConfig.run - 1) * 3,
+    fireInterval: Math.max(0.6, 1.8 - (runConfig.run - 1) * 0.15),
+  };
+}
+
 function makeState() {
   return {
     running:      false,
@@ -36,8 +56,9 @@ function makeState() {
     px:           0,
     py:           0,
     score:        0,
-    energy:       100,
-    timeLeft:     90,
+    energy:       runConfig.maxEnergy,
+    timeLeft:     90 + (runConfig.run - 1) * 15,
+    shieldHits:   runConfig.shieldHits,
     bossDefeated: false,
   };
 }
@@ -45,19 +66,52 @@ function makeState() {
 // ── Init / reset ──────────────────────────────────────────────────────────────
 function init() {
   for (const o of objects) scene.remove(o);
-  objects = buildLevel(scene, TUNNEL_LENGTH);
+  if (tunnelMesh) scene.remove(tunnelMesh);
+  tunnelMesh = buildTunnel(scene, runConfig.tunnelLength);
+  objects    = buildLevel(scene, runConfig.tunnelLength, runConfig.run);
 
-  state = makeState();
-  resetBoss(boss, scene);
+  const { hp, fireInterval } = bossDifficulty();
+  resetWeapons(weapons, scene);
+  resetBoss(boss, scene, runConfig.tunnelLength, hp, fireInterval);
   hideBossHUD();
 
+  state = makeState();
   player.group.position.set(0, 0, 0);
   camera.position.set(0, 0.8, 5);
 
   document.getElementById('end-overlay').classList.remove('active');
   document.getElementById('end-overlay').classList.add('hidden');
+  document.getElementById('upgrade-overlay').classList.add('hidden');
 
   updateHUD(state);
+  updateRunHUD(runConfig.run, state.shieldHits);
+}
+
+// ── Upgrade screen ────────────────────────────────────────────────────────────
+function showUpgradeScreen() {
+  const choices = getUpgradeChoices(runConfig);
+  const container = document.getElementById('upgrade-cards');
+  container.innerHTML = '';
+
+  for (const upg of choices) {
+    const card = document.createElement('div');
+    card.className = 'upgrade-card';
+    card.innerHTML = `<div class="upg-name">${upg.name}</div><div class="upg-desc">${upg.desc}</div>`;
+    card.addEventListener('click', () => selectUpgrade(upg));
+    container.appendChild(card);
+  }
+
+  document.getElementById('upgrade-run-num').textContent = runConfig.run;
+  document.getElementById('upgrade-overlay').classList.remove('hidden');
+}
+
+function selectUpgrade(upg) {
+  upg.apply(runConfig);
+  runConfig.run++;
+  runConfig.tunnelLength += 50;
+  init();
+  state.running = true;
+  clock.start();
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────
@@ -69,10 +123,19 @@ function startGame() {
   clock.start();
 }
 
-// ── UI wiring ────────────────────────────────────────────────────────────────
+// ── UI wiring ─────────────────────────────────────────────────────────────────
 document.getElementById('start-btn').addEventListener('click', startGame);
 
 document.getElementById('restart-btn').addEventListener('click', () => {
+  // Full reset — wipe run progress
+  runConfig.run          = 1;
+  runConfig.tunnelLength = 200;
+  runConfig.maxEnergy    = 100;
+  runConfig.torpedoSpeed = 40;
+  runConfig.torpedoDamage = 1;
+  runConfig.spreadShot   = false;
+  runConfig.shieldHits   = 0;
+  runConfig.energyRegen  = 0;
   init();
   state.running = true;
   clock.start();
@@ -81,28 +144,41 @@ document.getElementById('restart-btn').addEventListener('click', () => {
 document.getElementById('sonar-btn').addEventListener('click', () => fireSonar(sonar));
 document.getElementById('fire-btn').addEventListener('click', () => {
   if (state.running && !state.over)
-    fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime);
+    fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime, runConfig);
 });
 
 window.addEventListener('keydown', e => {
   if (e.code === 'Space') { e.preventDefault(); fireSonar(sonar); }
-  if (e.code === 'KeyF' && state.running && !state.over) {
-    fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime);
-  }
+  if (e.code === 'KeyF' && state.running && !state.over)
+    fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime, runConfig);
   if (e.code === 'KeyR' && state.over) {
-    init();
-    state.running = true;
-    clock.start();
+    runConfig.run = 1; runConfig.tunnelLength = 200;
+    runConfig.maxEnergy = 100; runConfig.torpedoSpeed = 40;
+    runConfig.torpedoDamage = 1; runConfig.spreadShot = false;
+    runConfig.shieldHits = 0; runConfig.energyRegen = 0;
+    init(); state.running = true; clock.start();
   }
 });
 
 window.addEventListener('click', e => {
   if (!state.running || state.over) return;
-  if (e.target.closest('button')) return;
-  fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime);
+  if (e.target.closest('button, .upgrade-card')) return;
+  fireTorpedo(weapons, scene, state.px, state.py, state.z, clock.elapsedTime, runConfig);
 });
 
 window.addEventListener('resize', () => onResize(renderer, camera));
+
+// ── Damage helper (respects shield) ──────────────────────────────────────────
+function takeDamage(amount) {
+  if (state.shieldHits > 0) {
+    state.shieldHits--;
+    flash('hit');
+    updateRunHUD(runConfig.run, state.shieldHits);
+  } else {
+    state.energy = Math.max(0, state.energy - amount);
+    flash('damage');
+  }
+}
 
 // ── Render loop ───────────────────────────────────────────────────────────────
 const playerPos = new THREE.Vector3();
@@ -114,31 +190,32 @@ renderer.setAnimationLoop(() => {
   if (state.running && !state.over) {
     state.timeLeft -= delta;
 
+    // Energy regen
+    if (runConfig.energyRegen > 0)
+      state.energy = Math.min(runConfig.maxEnergy, state.energy + runConfig.energyRegen * delta);
+
     updatePlayer(player, keys, delta, state);
 
     // Halt forward progress while boss is alive
-    if (boss.active && !boss.defeated) {
-      state.z = Math.max(state.z, BOSS_ACTIVATE + 5);
-    }
+    if (boss.active && !boss.defeated)
+      state.z = Math.max(state.z, getBossActivateZ(runConfig.tunnelLength) + 5);
 
     updateCamera(camera, state, delta);
-
     playerPos.set(state.px, state.py, state.z);
 
     updateSonar(sonar, playerPos, delta);
-
     updateObjects(objects, time);
     updateWeapons(weapons, objects, scene, delta, () => flash('hit'));
     checkCollisions(
       objects,
       playerPos,
       (_crystal) => { state.score += 10; },
-      (_block)   => { state.energy = Math.max(0, state.energy - 15); flash('damage'); },
-      (_orb)     => { state.energy = Math.min(100, state.energy + 25); flash('energy'); },
+      (_block)   => { takeDamage(15); },
+      (_orb)     => { state.energy = Math.min(runConfig.maxEnergy, state.energy + 25); flash('energy'); },
     );
 
     // Activate boss when player nears the end
-    if (!boss.active && state.z <= BOSS_ACTIVATE) {
+    if (!boss.active && state.z <= getBossActivateZ(runConfig.tunnelLength)) {
       boss.active = true;
       boss.group.visible = true;
       showBossHUD(boss.hp, boss.maxHp);
@@ -147,8 +224,9 @@ renderer.setAnimationLoop(() => {
     if (boss.active) {
       updateBoss(
         boss, state, delta, time, weapons.projectiles, scene,
-        () => { state.energy = Math.max(0, state.energy - 20); flash('damage'); },
+        () => { takeDamage(20); },
         (hp) => { updateBossBar(hp, boss.maxHp); flash('hit'); },
+        runConfig.torpedoDamage,
       );
 
       if (boss.defeated) {
@@ -156,13 +234,12 @@ renderer.setAnimationLoop(() => {
         state.running = false;
         state.over    = true;
         hideBossHUD();
-        showEnd(state);
+        showUpgradeScreen();
       }
     }
 
-    for (let i = 0; i < pulseLights.length; i++) {
+    for (let i = 0; i < pulseLights.length; i++)
       pulseLights[i].intensity = 1.2 + Math.sin(time * 3 + i * 1.3) * 0.5;
-    }
 
     updateHUD(state);
 

@@ -25,12 +25,12 @@ export function createCamera() {
   return cam;
 }
 
-export function buildTunnel(scene) {
+export function buildTunnel(scene, length = TUNNEL_LENGTH) {
   const geometry = new THREE.CylinderGeometry(
-    TUNNEL_RADIUS, TUNNEL_RADIUS, TUNNEL_LENGTH,
-    24, 1, true   // open-ended so inside is visible
+    TUNNEL_RADIUS, TUNNEL_RADIUS, length,
+    24, 1, true
   );
-  geometry.rotateX(Math.PI / 2); // align with Z axis
+  geometry.rotateX(Math.PI / 2);
 
   const material = new THREE.MeshStandardMaterial({
     color: 0x8b0033,
@@ -42,7 +42,7 @@ export function buildTunnel(scene) {
   });
 
   const tunnel = new THREE.Mesh(geometry, material);
-  tunnel.position.z = -TUNNEL_LENGTH / 2;
+  tunnel.position.z = -length / 2;
   scene.add(tunnel);
   return tunnel;
 }
