@@ -64,9 +64,9 @@ export function buildTunnel(scene, length = TUNNEL_LENGTH) {
   const bumpTexture = createTunnelBumpTexture(length);
 
   const material = new THREE.MeshStandardMaterial({
-    color:             0x6e1422,   // brighter crimson
-    emissive:          0x2e0810,
-    emissiveIntensity: 0.7,
+    color:             0xb02535,
+    emissive:          0x5e1420,
+    emissiveIntensity: 1.1,
     map:               wallTexture,
     bumpMap:           bumpTexture,
     bumpScale:         0.08,
