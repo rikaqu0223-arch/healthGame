@@ -17,6 +17,7 @@ import { spawnExplosion, updateExplosions, EXPL_COLORS } from './particles.js';
 import { getUpgradeChoices } from './upgrades.js';
 import { showCutscene } from './story.js';
 import { getStoredPlayerName, initializeLeaderboard, storePlayerName } from './leaderboard.js';
+import { createLandingExperience } from './landing.js';
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 const canvas   = document.getElementById('c');
@@ -79,6 +80,30 @@ let state   = makeState();
 const clock = new THREE.Clock(false);
 document.body.classList.add('pregame');
 document.body.classList.remove('game-active');
+
+const landingOverlay = document.getElementById('landing-overlay');
+const landingExperience = createLandingExperience(
+  document.getElementById('landing-canvas'),
+  landingOverlay.querySelector('.landing-scroll'),
+);
+
+function leaveLanding() {
+  if (landingOverlay.classList.contains('is-leaving')) return;
+  landingOverlay.classList.add('is-leaving');
+
+  window.setTimeout(() => {
+    landingOverlay.classList.add('hidden');
+    landingOverlay.classList.remove('active', 'is-leaving');
+    const mealOverlay = document.getElementById('meal-overlay');
+    mealOverlay.classList.remove('hidden');
+    mealOverlay.classList.add('active');
+    mealOverlay.querySelector('.meal-upload-btn')?.focus();
+    landingExperience.destroy();
+  }, 480);
+}
+
+document.getElementById('landing-start-btn').addEventListener('click', leaveLanding);
+document.getElementById('landing-final-btn').addEventListener('click', leaveLanding);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function bossDifficulty() {
@@ -519,7 +544,7 @@ document.getElementById('congrats-save-score').addEventListener('click', () => {
 
 window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'Player x/y are offsets from the vessel center; z decreases moving forward.',
-  mode: state.over ? 'result' : state.running ? 'playing' : 'menu',
+  mode: !landingOverlay.classList.contains('hidden') ? 'landing' : state.over ? 'result' : state.running ? 'playing' : 'menu',
   player: { x: state.px, y: state.py, z: state.z },
   score: state.score,
   energy: Math.round(state.energy),

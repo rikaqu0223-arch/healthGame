@@ -34,6 +34,8 @@ Original prompt: Use Virus.glb under download to replace boss
 - Reduced the submarine's forward speed from 14 to 8.4 units per second (60% of the previous speed).
 - Verified the meal scan, title, cutscene, live gameplay HUD, and 390x844 mobile layout in the browser with no console errors; the production build passes.
 - Reduced the submarine's forward speed again from 8.4 to 5.04 units per second, which is 60% of the previous speed; the production build and gameplay smoke test pass.
+- Added a full landing experience with a dedicated animated Three.js artery scene, the real submarine model, plaque and crystal set dressing, responsive mission briefing sections, accessible launch controls, reduced-motion support, and a transition into the existing meal scan flow.
+- Applied the ui-ux-pro-max accessibility and interaction guidance; the production build passes with the new landing experience.
 
 ## TODO
 

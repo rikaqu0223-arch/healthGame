@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BioCurrent</title>
+    <meta name="description" content="Pilot a nano-submarine through the bloodstream, clear arterial plaque, and restore healthy cardiovascular flow." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,6 +19,70 @@
     </div>
     <div id="screen-vignette" aria-hidden="true"></div>
     <div id="screen-scanlines" aria-hidden="true"></div>
+
+    <div id="landing-overlay" class="active">
+      <canvas id="landing-canvas" aria-hidden="true"></canvas>
+      <div class="landing-noise" aria-hidden="true"></div>
+
+      <header class="landing-nav">
+        <a class="landing-wordmark" href="#landing-hero" aria-label="BioCurrent home">
+          <span class="wordmark-mark" aria-hidden="true"></span>
+          BIOCURRENT
+        </a>
+        <div class="landing-status"><span aria-hidden="true"></span> ARTERY LINK ACTIVE</div>
+      </header>
+
+      <main class="landing-scroll">
+        <section id="landing-hero" class="landing-hero" aria-labelledby="landing-title">
+          <div class="landing-copy">
+            <p class="landing-kicker">INTRAVASCULAR RESPONSE UNIT // 07</p>
+            <h1 id="landing-title">BIOCURRENT</h1>
+            <p class="landing-headline">Clear the blockage.<br />Restore the flow.</p>
+            <p class="landing-intro">Pilot a nano-submarine into a failing artery and fight cardiovascular disease from within.</p>
+            <div class="landing-actions">
+              <button id="landing-start-btn" class="landing-primary" type="button">BEGIN MISSION</button>
+              <a class="landing-secondary" href="#mission-brief">MISSION BRIEF</a>
+            </div>
+          </div>
+
+          <div class="landing-telemetry" aria-hidden="true">
+            <span>VESSEL 04-A</span>
+            <span>FLOW RESTRICTED</span>
+            <span>PLAQUE MASS DETECTED</span>
+          </div>
+
+          <a class="landing-scroll-cue" href="#mission-brief">
+            <span>SCROLL TO BRIEFING</span>
+            <i aria-hidden="true"></i>
+          </a>
+        </section>
+
+        <section id="mission-brief" class="mission-brief" aria-labelledby="brief-title">
+          <div class="brief-copy">
+            <p class="landing-kicker">MISSION 01 // ARTERY IN DANGER</p>
+            <h2 id="brief-title">Reopen the artery.</h2>
+            <p>A dense plaque formation is starving tissue downstream. Enter the vessel, break through the obstruction, and bring circulation back online.</p>
+          </div>
+
+          <dl class="mission-data">
+            <div><dt>PATIENT STATUS</dt><dd>Flow restricted</dd></div>
+            <div><dt>PRIMARY THREAT</dt><dd>Arterial plaque</dd></div>
+            <div><dt>MISSION STATE</dt><dd>Awaiting pilot</dd></div>
+          </dl>
+
+          <div class="mission-objective">
+            <span>01</span>
+            <p><strong>FIVE BLOCKAGES.</strong> One continuous mission through a living cardiovascular system.</p>
+          </div>
+        </section>
+
+        <section class="landing-final" aria-labelledby="final-title">
+          <p class="landing-kicker">NANO-SUB 07 IS READY</p>
+          <h2 id="final-title">The current starts with you.</h2>
+          <button id="landing-final-btn" class="landing-primary" type="button">ENTER THE BLOODSTREAM</button>
+        </section>
+      </main>
+    </div>
 
     <!-- HUD -->
     <div id="hud">
@@ -70,7 +135,7 @@
     <button id="fire-btn">FIRE</button>
 
     <!-- Overlay screens -->
-    <div id="meal-overlay" class="active">
+    <div id="meal-overlay" class="hidden">
       <h1>Meal Scan</h1>
       <p class="meal-copy">
         Upload your meal to calculate your initial starting health before entering the bloodstream.
