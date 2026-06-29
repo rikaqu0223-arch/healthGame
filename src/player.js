@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { getTunnelCenter, TUNNEL_RADIUS } from './scene.js';
 
-const SPEED       = 8.4;  // 60% of the original forward speed
+const SPEED       = 5.04; // 60% of the previous forward speed
 const STRAFE      = 6;    // lateral / vertical speed
 const BANK_ANGLE  = 0.35; // roll when strafing
 const WALL_HARD   = TUNNEL_RADIUS - 0.15; // push-back boundary
