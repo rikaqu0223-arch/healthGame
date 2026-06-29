@@ -4,15 +4,41 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BioCurrent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body class="pregame">
+    <div id="pregame-atmosphere" aria-hidden="true">
+      <div class="scanner-grid"></div>
+      <div class="blood-cell-field">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+    <div id="screen-vignette" aria-hidden="true"></div>
+    <div id="screen-scanlines" aria-hidden="true"></div>
+
     <!-- HUD -->
     <div id="hud">
-      <div id="score-display">CRYSTALS: <span id="score">0</span></div>
-      <div id="energy-bar-wrap">
-        <div id="energy-bar"></div>
+      <div id="score-display" class="hud-module">
+        <span class="hud-glyph crystal-glyph" aria-hidden="true"></span>
+        <span class="hud-copy"><span class="hud-label">CRYSTALS</span><strong id="score">0</strong></span>
       </div>
-      <div id="timer-display">TIME: <span id="timer">90</span>s</div>
+      <div id="energy-display">
+        <div class="energy-readout">
+          <span class="hud-label">HULL ENERGY</span>
+          <strong id="energy-value">100%</strong>
+        </div>
+        <div id="energy-bar-wrap">
+          <div id="energy-bar"></div>
+          <div class="energy-segments" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div id="timer-display" class="hud-module">
+        <span class="hud-glyph timer-glyph" aria-hidden="true"></span>
+        <span class="hud-copy"><span class="hud-label">TIME</span><strong><span id="timer">90</span><small>s</small></strong></span>
+      </div>
     </div>
     <div id="hud-sub">
       <span id="run-display">RUN <span id="run-num">1</span></span>
@@ -31,6 +57,13 @@
       <div id="xp-bar-wrap"><div id="xp-bar"></div></div>
     </div>
     <div id="levelup-banner" class="hidden"></div>
+    <div id="pickup-toast" class="hidden" role="status" aria-live="polite">
+      <span id="pickup-icon" aria-hidden="true"></span>
+      <span class="pickup-copy">
+        <strong id="pickup-title"></strong>
+        <small id="pickup-detail"></small>
+      </span>
+    </div>
 
     <!-- Sonar button (mobile + desktop) -->
     <button id="sonar-btn">SONAR</button>

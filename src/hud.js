@@ -3,9 +3,29 @@ import { xpProgress } from './xp.js';
 const scoreEl   = document.getElementById('score');
 const timerEl   = document.getElementById('timer');
 const energyEl  = document.getElementById('energy-bar');
+const energyValueEl = document.getElementById('energy-value');
+const energyWrapEl = document.getElementById('energy-bar-wrap');
 const flashEl   = document.getElementById('flash');
 const bossHudEl = document.getElementById('boss-hud');
 const bossBarEl = document.getElementById('boss-bar');
+const pickupToastEl = document.getElementById('pickup-toast');
+const pickupIconEl = document.getElementById('pickup-icon');
+const pickupTitleEl = document.getElementById('pickup-title');
+const pickupDetailEl = document.getElementById('pickup-detail');
+const scoreDisplayEl = document.getElementById('score-display');
+const timerDisplayEl = document.getElementById('timer-display');
+
+let previousScore = 0;
+let pickupTimer = null;
+
+const PICKUP_META = {
+  crystal:   { icon: '◆', tone: 'cyan' },
+  energy:    { icon: '+', tone: 'green' },
+  broccoli:  { icon: '◇', tone: 'green' },
+  fries:     { icon: '!', tone: 'amber' },
+  fish:      { icon: '≈', tone: 'cyan' },
+  hamburger: { icon: '●', tone: 'amber' },
+};
 
 export function showBossHUD(hp, maxHp, name = 'PLAQUE BLOCKAGE') {
   document.getElementById('boss-label').textContent = name;
@@ -39,6 +59,21 @@ export function flash(type) {
   flashEl.className = `flash-${type}`;
 }
 
+export function showPickup(type, title, detail) {
+  const meta = PICKUP_META[type] || PICKUP_META.crystal;
+  if (pickupTimer) clearTimeout(pickupTimer);
+
+  pickupIconEl.textContent = meta.icon;
+  pickupTitleEl.textContent = title;
+  pickupDetailEl.textContent = detail;
+  pickupToastEl.dataset.tone = meta.tone;
+  pickupToastEl.classList.remove('hidden', 'pickup-enter');
+  void pickupToastEl.offsetWidth;
+  pickupToastEl.classList.add('pickup-enter');
+
+  pickupTimer = setTimeout(() => pickupToastEl.classList.add('hidden'), 1700);
+}
+
 export function updateHUD(state) {
   const maxEnergy = state.maxEnergy || 100;
   const energyPct = Math.max(0, Math.min(100, (state.energy / maxEnergy) * 100));
@@ -46,13 +81,19 @@ export function updateHUD(state) {
   scoreEl.textContent  = state.score;
   timerEl.textContent  = Math.ceil(state.timeLeft);
   energyEl.style.width = `${energyPct}%`;
+  energyValueEl.textContent = `${Math.round(energyPct)}%`;
 
-  // Pulse energy bar red when low
-  if (state.energy < 30) {
-    energyEl.style.background = `linear-gradient(90deg, #ff1122, #ff4400)`;
-  } else {
-    energyEl.style.background = `linear-gradient(90deg, #ff4466, #ff8844)`;
+  if (state.score !== previousScore) {
+    scoreDisplayEl.classList.remove('hud-bump');
+    void scoreDisplayEl.offsetWidth;
+    scoreDisplayEl.classList.add('hud-bump');
+    previousScore = state.score;
   }
+
+  const lowEnergy = energyPct < 30;
+  energyWrapEl.classList.toggle('is-low', lowEnergy);
+  timerDisplayEl.classList.toggle('is-urgent', state.timeLeft <= 15);
+  document.body.classList.toggle('critical-energy', lowEnergy && state.running && !state.over);
 }
 
 export function updateLevelHUD(xpState) {

@@ -29,6 +29,10 @@ Original prompt: Use Virus.glb under download to replace boss
 - Added a second migration for the new columns, public Storage bucket, file-size/type restrictions, and insert-only upload policy.
 - Playwright verified both local-file upload and pasted-image import paths: each creates one Storage object, and the database payload contains only the resulting Supabase public URL plus both food counters.
 - Moved hosted meal analysis behind a Cloudflare Pages Function at `/api/analyze-meal`; production uses the server-side `MEAL_API_KEY` secret while local Vite development keeps the existing direct-call path.
+- Overhauled the cockpit UI with Orbitron/Rajdhani typography, animated blood-cell and scan-line atmosphere, stronger screen transitions, a sci-fi meal scanner, polished buttons, and responsive upgrade cards.
+- Rebuilt the live HUD with labeled score and timer modules, a segmented energy bar with low-health feedback, collectible pickup notices, and damage shake feedback.
+- Reduced the submarine's forward speed from 14 to 8.4 units per second (60% of the previous speed).
+- Verified the meal scan, title, cutscene, live gameplay HUD, and 390x844 mobile layout in the browser with no console errors; the production build passes.
 
 ## TODO
 

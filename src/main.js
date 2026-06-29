@@ -9,7 +9,7 @@ import { loadFishModel } from './fish.js';
 import { loadHamburgerModel } from './hamburger.js';
 import { loadWBCModel } from './wbc.js';
 import { createSonar, fireSonar, updateSonar } from './sonar.js';
-import { updateHUD, showEnd, flash, showBossHUD, updateBossBar, hideBossHUD, updateRunHUD, updateLevelHUD, showLevelUp } from './hud.js';
+import { updateHUD, showEnd, flash, showBossHUD, updateBossBar, hideBossHUD, updateRunHUD, updateLevelHUD, showLevelUp, showPickup } from './hud.js';
 import { createXPState, resetXP, addXP, XP_VALUES } from './xp.js';
 import { createWeaponSystem, resetWeapons, fireTorpedo, updateWeapons } from './weapons.js';
 import { createBoss, resetBoss, updateBoss, tickBossExplosion, getBossActivateZ, getBossVariant } from './boss.js';
@@ -317,13 +317,22 @@ function showUpgradeScreen() {
   const container = document.getElementById('upgrade-cards');
   container.innerHTML = '';
 
-  for (const upg of choices) {
-    const card = document.createElement('div');
+  choices.forEach((upg, index) => {
+    const card = document.createElement('button');
+    card.type = 'button';
     card.className = 'upgrade-card';
-    card.innerHTML = `<div class="upg-name">${upg.name}</div><div class="upg-desc">${upg.desc}</div>`;
+    card.dataset.upgrade = upg.id;
+    card.innerHTML = `
+      <span class="upg-heading">
+        <span class="upg-code">0${index + 1}</span>
+        <span class="upg-name">${upg.name}</span>
+      </span>
+      <span class="upg-desc">${upg.desc}</span>
+      <span class="upg-action">INSTALL UPGRADE</span>
+    `;
     card.addEventListener('click', () => selectUpgrade(upg));
     container.appendChild(card);
-  }
+  });
 
   document.getElementById('upgrade-run-num').textContent = runConfig.run;
   document.getElementById('upgrade-overlay').classList.remove('hidden');
@@ -468,6 +477,12 @@ function takeDamage(amount) {
     state.energy = Math.max(0, state.energy - amount);
     flash('damage');
   }
+
+  state.camShake = Math.max(state.camShake, 0.75);
+  document.body.classList.remove('damage-shake');
+  void document.body.offsetWidth;
+  document.body.classList.add('damage-shake');
+  setTimeout(() => document.body.classList.remove('damage-shake'), 320);
 }
 
 // ── Render loop ───────────────────────────────────────────────────────────────
@@ -578,16 +593,22 @@ renderer.setAnimationLoop(() => {
       playerPos,
       (crystal) => {
         addScore(10);
+        showPickup('crystal', 'LIGHT CRYSTAL', '+10 score · systems charged');
         if (addXP(xpState, XP_VALUES[crystal.userData.type] ?? 5)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
         updateLevelHUD(xpState);
       },
       (block)    => { takeDamage(15); spawnExplosion(scene, block.position.clone(), EXPL_COLORS[block.userData?.type] ?? 0xff4400); },
-      (_orb)     => { state.energy = Math.min(runConfig.maxEnergy, state.energy + 25); flash('energy'); },
+      (_orb)     => {
+        state.energy = Math.min(runConfig.maxEnergy, state.energy + 25);
+        flash('energy');
+        showPickup('energy', 'ENERGY SURGE', '+25 hull energy');
+      },
       (broc)    => {
         const cleared = clearObstaclesAhead(objects, state.z, 40);
         runConfig.veggieCount++;
         addScore(50 + cleared * 5);
         flash('broccoli');
+        showPickup('broccoli', 'BROCCOLI BURST', `${cleared} blockage${cleared === 1 ? '' : 's'} cleared ahead`);
         if (addXP(xpState, XP_VALUES.broccoli)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
         updateLevelHUD(xpState);
       },
@@ -596,6 +617,7 @@ renderer.setAnimationLoop(() => {
         runConfig.junkFoodCount++;
         addScore(30 + cleared * 5);
         flash('fries');
+        showPickup('fries', 'FRIES SHOCKWAVE', `${cleared} nearby blockage${cleared === 1 ? '' : 's'} cleared`);
         if (addXP(xpState, XP_VALUES.fries)) { applySubmarineLevel(player, xpState.level); showLevelUp(xpState.level); }
         updateLevelHUD(xpState);
       },
@@ -603,12 +625,14 @@ renderer.setAnimationLoop(() => {
         const cleared = clearObstaclesAhead(objects, state.z, 40);
         addScore(50 + cleared * 5);
         flash('fish');
+        showPickup('fish', 'OMEGA FLOW', `${cleared} blockage${cleared === 1 ? '' : 's'} cleared ahead`);
       },
       (_burger) => {
         const cleared = clearObstaclesAround(objects, playerPos, 25);
         runConfig.junkFoodCount++;
         addScore(30 + cleared * 5);
         flash('hamburger');
+        showPickup('hamburger', 'BURGER BLAST', `${cleared} nearby blockage${cleared === 1 ? '' : 's'} cleared`);
       },
     );
 
