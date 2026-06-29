@@ -41,7 +41,13 @@ npm run build
 
 ## Meal scanner API
 
-The meal scanner uses an OpenAI-compatible chat completions endpoint from the browser demo code. The API key is read from `VITE_MEAL_API_KEY`.
+Local Vite development calls the OpenAI-compatible endpoint directly and reads `VITE_MEAL_API_KEY`. Cloudflare Pages uses `functions/api/analyze-meal.js` and a server-side `MEAL_API_KEY` secret, so the credential is not included in the browser bundle.
+
+Set the Cloudflare Pages secret with:
+
+```bash
+npx wrangler pages secret put MEAL_API_KEY --project-name=biocurrent-health-game
+```
 
 Do not commit `.env.local` or real API keys. Share `.env.example` instead.
 

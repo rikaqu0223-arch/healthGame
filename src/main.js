@@ -35,8 +35,9 @@ const sonar   = createSonar(scene);
 const weapons = createWeaponSystem();
 const boss    = createBoss(scene);
 
-const MEAL_API_KEY = import.meta.env.VITE_MEAL_API_KEY || '';
-const MEAL_API_URL = 'https://api.tu-zi.com/v1/chat/completions';
+const isLocalDev = import.meta.env.DEV;
+const localMealApiKey = import.meta.env.VITE_MEAL_API_KEY || '';
+const localMealApiUrl = 'https://api.tu-zi.com/v1/chat/completions';
 
 // ── Persistent run config (survives restarts) ─────────────────────────────────
 const runConfig = {
@@ -158,11 +159,11 @@ function extractJson(content) {
 }
 
 async function analyzeMealImage(imageSource) {
-  if (!MEAL_API_KEY) {
+  if (isLocalDev && !localMealApiKey) {
     throw new Error('Meal scanner API key is missing. Add VITE_MEAL_API_KEY to .env.local.');
   }
 
-  const payload = {
+  const modelPayload = {
     model: 'gemini-3-flash-preview',
     messages: [
       {
@@ -189,13 +190,13 @@ async function analyzeMealImage(imageSource) {
     max_tokens: 2048,
   };
 
-  const response = await fetch(MEAL_API_URL, {
+  const response = await fetch(isLocalDev ? localMealApiUrl : '/api/analyze-meal', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${MEAL_API_KEY}`,
+      ...(isLocalDev ? { Authorization: `Bearer ${localMealApiKey}` } : {}),
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(isLocalDev ? modelPayload : { imageSource }),
   });
 
   const raw = await response.text();

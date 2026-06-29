@@ -28,6 +28,7 @@ Original prompt: Use Virus.glb under download to replace boss
 - Added `meal-photos` Supabase Storage upload support; leaderboard rows store only `meal_photo_url` and display a thumbnail.
 - Added a second migration for the new columns, public Storage bucket, file-size/type restrictions, and insert-only upload policy.
 - Playwright verified both local-file upload and pasted-image import paths: each creates one Storage object, and the database payload contains only the resulting Supabase public URL plus both food counters.
+- Moved hosted meal analysis behind a Cloudflare Pages Function at `/api/analyze-meal`; production uses the server-side `MEAL_API_KEY` secret while local Vite development keeps the existing direct-call path.
 
 ## TODO
 
