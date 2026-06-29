@@ -1,14 +1,42 @@
 const MEAL_API_URL = 'https://api.tu-zi.com/v1/chat/completions';
 const MAX_DATA_URL_LENGTH = 14_000_000;
+const RATE_LIMIT = 3;
+const RATE_WINDOW_SECONDS = 3600;
 
-function jsonResponse(body, status = 200) {
+function jsonResponse(body, status = 200, extraHeaders = {}) {
   return Response.json(body, {
     status,
     headers: {
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
+      ...extraHeaders,
     },
   });
+}
+
+async function checkRateLimit(kv, ip) {
+  const key = `rl:${ip}`;
+  const now = Date.now();
+  const windowMs = RATE_WINDOW_SECONDS * 1000;
+
+  const stored = await kv.get(key, 'json');
+
+  if (!stored || now > stored.resetAt) {
+    await kv.put(key, JSON.stringify({ count: 1, resetAt: now + windowMs }), {
+      expirationTtl: RATE_WINDOW_SECONDS,
+    });
+    return { allowed: true, remaining: RATE_LIMIT - 1, resetAt: now + windowMs };
+  }
+
+  if (stored.count >= RATE_LIMIT) {
+    return { allowed: false, remaining: 0, resetAt: stored.resetAt };
+  }
+
+  const ttl = Math.ceil((stored.resetAt - now) / 1000);
+  await kv.put(key, JSON.stringify({ count: stored.count + 1, resetAt: stored.resetAt }), {
+    expirationTtl: ttl,
+  });
+  return { allowed: true, remaining: RATE_LIMIT - stored.count - 1, resetAt: stored.resetAt };
 }
 
 function isValidImageSource(value) {
@@ -26,6 +54,24 @@ function isValidImageSource(value) {
 export async function onRequestPost({ request, env }) {
   if (!env.MEAL_API_KEY) {
     return jsonResponse({ error: { message: 'Meal scanner is not configured.' } }, 503);
+  }
+
+  if (env.KV) {
+    const ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
+    const { allowed, remaining, resetAt } = await checkRateLimit(env.KV, ip);
+    if (!allowed) {
+      const retryAfter = Math.ceil((resetAt - Date.now()) / 1000);
+      return jsonResponse(
+        { error: { message: `Rate limit reached. You can analyze ${RATE_LIMIT} meals per hour.` } },
+        429,
+        {
+          'Retry-After': String(retryAfter),
+          'X-RateLimit-Limit': String(RATE_LIMIT),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(Math.ceil(resetAt / 1000)),
+        },
+      );
+    }
   }
 
   let imageSource;

@@ -1,0 +1,8 @@
+name = "healthgame"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "dist"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "b3b9914270e44a909ccbc05ed73bc4a0"
+# preview_id = "<ID_OF_PREVIEW_KV_NAMESPACE_FOR_LOCAL_DEVELOPMENT>"
